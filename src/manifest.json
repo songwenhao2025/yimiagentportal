@@ -1,0 +1,26 @@
+{
+	"name": "AgentPortal",
+	"appid": "__UNI__AGENT_PORTAL",
+	"description": "企业级Agent门户",
+	"versionName": "1.0.0",
+	"versionCode": "100",
+	"transformPx": false,
+	"h5": {
+		"title": "Agent门户",
+		"router": {
+			"mode": "hash",
+			"base": "./"
+		},
+		"devServer": {
+			"port": 5173,
+			"open": false
+		}
+	},
+	"mp-weixin": {
+		"appid": "",
+		"setting": {
+			"urlCheck": false
+		},
+		"usingComponents": true
+	}
+}

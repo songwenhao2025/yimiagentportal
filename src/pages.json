@@ -1,0 +1,79 @@
+{
+	"pages": [
+		{
+			"path": "pages/index/index",
+			"style": {
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/market/index",
+			"style": {
+				"navigationBarTitleText": "Agent市场",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/builder/index",
+			"style": {
+				"navigationBarTitleText": "Agent构建器",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/skills/index",
+			"style": {
+				"navigationBarTitleText": "Skills工作台",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/workflow/index",
+			"style": {
+				"navigationBarTitleText": "流程编排",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/knowledge/index",
+			"style": {
+				"navigationBarTitleText": "知识库管理",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/admin/index",
+			"style": {
+				"navigationBarTitleText": "管理中心",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/monitor/index",
+			"style": {
+				"navigationBarTitleText": "监控分析",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/agent/detail",
+			"style": {
+				"navigationBarTitleText": "Agent详情",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/agent/chat",
+			"style": {
+				"navigationBarTitleText": "Agent对话",
+				"navigationStyle": "custom"
+			}
+		}
+	],
+	"globalStyle": {
+		"navigationBarTextStyle": "white",
+		"navigationBarTitleText": "Agent门户",
+		"navigationBarBackgroundColor": "#1a1a2e",
+		"backgroundColor": "#f0f2f5"
+	}
+}
