@@ -35,6 +35,7 @@
         <module>workflow-service</module>
         <module>knowledge-service</module>
         <module>admin-service</module>
+        <module>llm-service</module>
     </modules>
 
     <dependencyManagement>

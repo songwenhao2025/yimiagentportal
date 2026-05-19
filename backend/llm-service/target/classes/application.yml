@@ -1,0 +1,31 @@
+server:
+  port: ${server.port:8087}
+
+spring:
+  application:
+    name: llm-service
+  datasource:
+    url: ${DB_URL:jdbc:mysql://10.206.20.129:3306/yimi_ai_portal?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:0AHPeevq2U2xWTi*}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.MySQL8Dialect
+
+anthropic:
+  api-key: ${ANTHROPIC_API_KEY:any-key}
+  base-url: ${ANTHROPIC_BASE_URL:http://localhost:15721}
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY:yimi-ai-portal-secret-key-must-be-at-least-256-bits-long-for-security}
+  expiration: ${JWT_EXPIRATION:86400000}
+
+logging:
+  level:
+    com.yimi.ai.llm: DEBUG

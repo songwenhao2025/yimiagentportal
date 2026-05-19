@@ -13,11 +13,19 @@ export default defineConfig({
         target: 'http://localhost:8082',
         changeOrigin: true,
       },
+      '/api/agent-call-logs': {
+        target: 'http://localhost:8082',
+        changeOrigin: true,
+      },
       '/api/skills': {
         target: 'http://localhost:8083',
         changeOrigin: true,
       },
       '/api/workflows': {
+        target: 'http://localhost:8084',
+        changeOrigin: true,
+      },
+      '/api/workflow-executions': {
         target: 'http://localhost:8084',
         changeOrigin: true,
       },
@@ -31,6 +39,10 @@ export default defineConfig({
       },
       '/api/users': {
         target: 'http://localhost:8081',
+        changeOrigin: true,
+      },
+      '/api/llm': {
+        target: 'http://localhost:8087',
         changeOrigin: true,
       },
     },

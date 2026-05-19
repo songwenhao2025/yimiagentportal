@@ -2,6 +2,7 @@ package com.yimi.ai.common.util;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
@@ -12,11 +13,17 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    private static final String SECRET_KEY = "yimi-ai-portal-secret-key-256-bit-minimum-length";
-    private static final long EXPIRATION_TIME = 86400000;
+    @Value("${jwt.secret-key:yimi-ai-portal-secret-key-must-be-at-least-256-bits-long-for-security}")
+    private String secretKey;
+
+    @Value("${jwt.expiration:86400000}")
+    private long expirationTime;
 
     private SecretKey getSigningKey() {
-        byte[] keyBytes = SECRET_KEY.getBytes(StandardCharsets.UTF_8);
+        byte[] keyBytes = secretKey.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            throw new IllegalArgumentException("JWT secret key must be at least 256 bits (32 bytes)");
+        }
         return Keys.hmacShaKeyFor(keyBytes);
     }
 
@@ -25,7 +32,7 @@ public class JwtUtil {
                 .claims(claims)
                 .subject(userId)
                 .issuedAt(new Date())
-                .expiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .expiration(new Date(System.currentTimeMillis() + expirationTime))
                 .signWith(getSigningKey())
                 .compact();
     }

@@ -11,7 +11,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<Void>> handleBusinessException(BusinessException e) {
-        return ResponseEntity.status(HttpStatus.OK)
+        HttpStatus status = determineHttpStatus(e.getCode());
+        return ResponseEntity.status(status)
                 .body(ApiResponse.error(e.getCode(), e.getMessage()));
     }
 
@@ -25,5 +26,20 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(ApiResponse.error(500, "服务器内部错误"));
+    }
+
+    private HttpStatus determineHttpStatus(int code) {
+        if (code >= 500) {
+            return HttpStatus.INTERNAL_SERVER_ERROR;
+        } else if (code == 401) {
+            return HttpStatus.UNAUTHORIZED;
+        } else if (code == 403) {
+            return HttpStatus.FORBIDDEN;
+        } else if (code == 404) {
+            return HttpStatus.NOT_FOUND;
+        } else if (code >= 400) {
+            return HttpStatus.BAD_REQUEST;
+        }
+        return HttpStatus.OK;
     }
 }
