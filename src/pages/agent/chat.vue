@@ -89,7 +89,9 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
-import { mockAgents, type Agent } from '@/data/agents'
+import { agentService } from '@/services/agent'
+import { llmService } from '@/services/llm'
+import type { Agent } from '@/data/agents'
 
 interface Message {
   id: string
@@ -108,50 +110,55 @@ const quickActions = ['查询路由', '计算时效', '创建工单', '查看报
 
 const messages = ref<Message[]>([])
 
-const sendMessage = () => {
+const sendMessage = async () => {
   if (!inputText.value.trim()) return
-  
+
   const userMsg: Message = {
     id: Date.now().toString(),
     content: inputText.value,
     isUser: true,
     time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
   }
-  
+
   messages.value.push(userMsg)
+  const currentInput = inputText.value
   inputText.value = ''
   scrollToBottom()
-  
+
   isTyping.value = true
-  
-  setTimeout(() => {
+
+  try {
+    const res = await llmService.chat({
+      messages: [
+        { role: 'system', content: `你是一个专业的AI助手，扮演角色：${agent.value.name}。角色描述：${agent.value.description}。请用专业、友好的语气回答问题。` },
+        { role: 'user', content: currentInput }
+      ]
+    })
     isTyping.value = false
-    
     const replyMsg: Message = {
       id: (Date.now() + 1).toString(),
-      content: getReply(),
+      content: res.choices?.[0]?.message?.content || '抱歉，AI服务未能返回有效回复。',
       isUser: false,
       time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     }
-    
     messages.value.push(replyMsg)
     scrollToBottom()
-  }, 1500 + Math.random() * 1000)
+  } catch (e: any) {
+    isTyping.value = false
+    const replyMsg: Message = {
+      id: (Date.now() + 1).toString(),
+      content: 'AI服务调用失败：' + (e.message || '未知错误'),
+      isUser: false,
+      time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+    }
+    messages.value.push(replyMsg)
+    scrollToBottom()
+  }
 }
 
 const sendQuick = (action: string) => {
   inputText.value = action
   sendMessage()
-}
-
-const getReply = () => {
-  const replies = [
-    '好的，我已收到您的请求，正在处理中...\n\n根据您的需求，我查询到以下信息：\n- 路由状态：正常\n- 预计送达：今天下午18:00\n- 当前位置：北京市朝阳区',
-    '已为您完成分析。结果如下：\n\n📊 数据分析\n- 平均时效：2.5小时\n- 异常率：3.2%\n- 建议：优化配送路线',
-    '操作已完成！\n\n✅ 工单已创建\n📋 工单号：WD20240415001\n⏰ 预计处理时间：2小时',
-    '报表数据已生成：\n\n📈 本周趋势\n- 调用量：+12%\n- 成功率：98.5%\n- 平均响应：2.3秒'
-  ]
-  return replies[Math.floor(Math.random() * replies.length)]
 }
 
 const scrollToBottom = () => {
@@ -170,20 +177,22 @@ const showMenu = () => {
   })
 }
 
-onMounted(() => {
+onMounted(async () => {
   uni.getSystemInfo({
     success: (res) => {
       contentHeight.value = res.windowHeight - 200
     }
   })
-  
+
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
   const options = (currentPage as unknown as { options?: { id?: string } }).options
   if (options?.id) {
-    const found = mockAgents.find(a => a.id === options.id)
-    if (found) {
-      agent.value = found
+    try {
+      const agentData = await agentService.get(options.id)
+      agent.value = agentData as Agent
+    } catch (e) {
+      console.error('Failed to load agent:', e)
     }
   }
 })

@@ -1,13 +1,17 @@
 package com.yimi.ai.common.entity;
 
 import com.yimi.ai.common.enums.AgentStatus;
+import com.yimi.ai.common.enums.AgentStatusConverter;
 import com.yimi.ai.common.enums.Department;
+import com.yimi.ai.common.enums.DepartmentConverter;
+import jakarta.persistence.Convert;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -29,7 +33,7 @@ public class Agent {
     private String description;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = DepartmentConverter.class)
     private Department department;
 
     @Column(columnDefinition = "JSON")
@@ -37,11 +41,11 @@ public class Agent {
 
     @Column(name = "success_rate", precision = 5, scale = 2, nullable = false)
     @Builder.Default
-    private Double successRate = 0.0;
+    private BigDecimal successRate = BigDecimal.ZERO;
 
     @Column(name = "avg_time", precision = 5, scale = 2, nullable = false)
     @Builder.Default
-    private Double avgTime = 0.0;
+    private BigDecimal avgTime = BigDecimal.ZERO;
 
     @Column(name = "daily_calls", nullable = false)
     @Builder.Default
@@ -51,7 +55,7 @@ public class Agent {
     @Builder.Default
     private Integer usageCount = 0;
 
-    @Column(name = "creator_id", length = 36, nullable = false)
+    @Column(name = "creator_id", length = 36)
     private String creatorId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -61,7 +65,7 @@ public class Agent {
     private LocalDateTime updatedAt;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = AgentStatusConverter.class)
     @Builder.Default
     private AgentStatus status = AgentStatus.PENDING;
 
@@ -70,7 +74,7 @@ public class Agent {
     private Boolean isFavorite = false;
 
     @Column(name = "rating", precision = 2, scale = 1)
-    private Double rating;
+    private BigDecimal rating;
 
     @PrePersist
     protected void onCreate() {

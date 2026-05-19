@@ -1,7 +1,10 @@
 package com.yimi.ai.workflow.controller;
 
 import com.yimi.ai.workflow.dto.WorkflowCreateRequest;
+import com.yimi.ai.workflow.dto.WorkflowExecutionRequest;
+import com.yimi.ai.workflow.dto.WorkflowExecutionResponse;
 import com.yimi.ai.workflow.dto.WorkflowResponse;
+import com.yimi.ai.workflow.service.WorkflowExecutionService;
 import com.yimi.ai.workflow.service.WorkflowService;
 import com.yimi.ai.common.response.ApiResponse;
 import com.yimi.ai.common.response.PageResponse;
@@ -16,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class WorkflowController {
 
     private final WorkflowService workflowService;
+    private final WorkflowExecutionService workflowExecutionService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<PageResponse<WorkflowResponse>>> list(
@@ -64,6 +68,20 @@ public class WorkflowController {
     @PostMapping("/{id}/deactivate")
     public ResponseEntity<ApiResponse<WorkflowResponse>> deactivate(@PathVariable String id) {
         WorkflowResponse response = workflowService.deactivate(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/execute")
+    public ResponseEntity<ApiResponse<WorkflowExecutionResponse>> execute(
+            @PathVariable String id,
+            @RequestBody(required = false) WorkflowExecutionRequest request) {
+        if (request == null) {
+            request = new WorkflowExecutionRequest();
+            request.setWorkflowId(id);
+            request.setTriggerType("api");
+        }
+        request.setWorkflowId(id);
+        WorkflowExecutionResponse response = workflowExecutionService.execute(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 }

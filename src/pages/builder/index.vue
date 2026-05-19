@@ -208,9 +208,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
-import { mockSkills } from '@/data/skills'
+import { skillService } from '@/services/skill'
+import { knowledgeService } from '@/services/knowledge'
 
 const activeTab = ref('basic')
 
@@ -227,13 +228,38 @@ const formData = ref({
   knowledge: [] as string[]
 })
 
-const availableSkills = mockSkills
+const availableSkills = ref<any[]>([])
+const availableKnowledge = ref<{ id: string; name: string; docCount: number }[]>([])
 
-const availableKnowledge = [
-  { id: '1', name: '物流操作SOP', docCount: 45 },
-  { id: '2', name: '客户服务FAQ', docCount: 128 },
-  { id: '3', name: '财务报销指南', docCount: 32 }
-]
+const loadSkills = async () => {
+  try {
+    const response = await skillService.list({ page: 1, size: 100 })
+    availableSkills.value = response.list || []
+  } catch (error) {
+    console.error('Failed to load skills:', error)
+  }
+}
+
+const loadKnowledge = async () => {
+  try {
+    const categories = await knowledgeService.getCategories()
+    // getCategories may return { id, name, count }
+    if (Array.isArray(categories)) {
+      availableKnowledge.value = categories.map(c => ({
+        id: c.id,
+        name: c.name,
+        docCount: c.count || 0
+      }))
+    }
+  } catch (error) {
+    console.error('Failed to load knowledge categories:', error)
+  }
+}
+
+onMounted(() => {
+  loadSkills()
+  loadKnowledge()
+})
 
 const getDeptIcon = (dept: string) => {
   const icons: Record<string, string> = {
@@ -246,7 +272,7 @@ const getDeptIcon = (dept: string) => {
 }
 
 const getSkillName = (id: string) => {
-  return mockSkills.find(s => s.id === id)?.name || id
+  return availableSkills.value.find(s => s.id === id)?.name || id
 }
 
 const addTag = (e: any) => {

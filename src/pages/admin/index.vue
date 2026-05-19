@@ -49,20 +49,20 @@
             </view>
             <view class="overview-grid">
               <view class="overview-item">
-                <text class="overview-value">156</text>
-                <text class="overview-label">注册用户</text>
+                <text class="overview-value">{{ stats ? stats.totalCalls : '0' }}</text>
+                <text class="overview-label">总调用次数</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">28</text>
+                <text class="overview-value">{{ stats ? stats.totalAgents : '0' }}</text>
                 <text class="overview-label">Agent总数</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">45</text>
-                <text class="overview-label">技能总数</text>
+                <text class="overview-value">{{ stats ? stats.activeUsers : '0' }}</text>
+                <text class="overview-label">活跃用户</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">¥12,580</text>
-                <text class="overview-label">本月消耗</text>
+                <text class="overview-value">¥{{ stats ? stats.totalCost.toFixed(2) : '0.00' }}</text>
+                <text class="overview-label">总消耗</text>
               </view>
             </view>
           </view>
@@ -74,6 +74,8 @@
 
 <script setup lang="ts">
 import Layout from '@/components/Layout.vue'
+import { ref, onMounted } from 'vue'
+import { adminService } from '@/services/admin'
 
 const menuItems = [
   { icon: '👥', title: '用户管理', desc: '管理组织架构和账户', color: 'blue', path: '' },
@@ -83,13 +85,26 @@ const menuItems = [
   { icon: '⚙️', title: '系统设置', desc: '基础配置和参数调整', color: 'gray', path: '' }
 ]
 
-const auditItems = ref([
-  { id: '1', title: '车线管理Agent v2.0', type: 'Agent发布', time: '10分钟前' },
-  { id: '2', title: '发送短信技能', type: '技能更新', time: '1小时前' },
-  { id: '3', title: '时效洞察Agent', type: '配置变更', time: '2小时前' }
-])
+const auditItems = ref<{ id: string; title: string; type: string; time: string }[]>([])
+const stats = ref<any>(null)
 
-import { ref } from 'vue'
+onMounted(async () => {
+  try {
+    const [statistics, logs] = await Promise.all([
+      adminService.getStatistics(),
+      adminService.getAuditLogs({ page: 1, size: 3 })
+    ])
+    stats.value = statistics
+    auditItems.value = (logs.list || []).map((log: any) => ({
+      id: log.id,
+      title: log.resource,
+      type: log.action,
+      time: log.timestamp ? new Date(log.timestamp).toLocaleString('zh-CN') : '-'
+    }))
+  } catch (e) {
+    console.error('Failed to load admin data:', e)
+  }
+})
 
 const handleMenuClick = (item: any) => {
   uni.showToast({ title: item.title, icon: 'none' })

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -40,7 +41,7 @@ public class CostRecord {
 
     @Column(precision = 10, scale = 2, nullable = false)
     @Builder.Default
-    private Double cost = 0.0;
+    private BigDecimal cost = BigDecimal.ZERO;
 
     @Column(nullable = false)
     private LocalDate date;

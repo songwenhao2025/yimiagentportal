@@ -7,6 +7,13 @@
 			}
 		},
 		{
+			"path": "pages/login/index",
+			"style": {
+				"navigationBarTitleText": "登录",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/market/index",
 			"style": {
 				"navigationBarTitleText": "Agent市场",

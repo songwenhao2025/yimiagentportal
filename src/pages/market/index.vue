@@ -34,32 +34,13 @@
                 <text>全部</text>
               </view>
               <view 
+                v-for="dept in departments" 
+                :key="dept.id"
                 class="filter-item" 
-                :class="{ active: selectedDept === 'operation' }"
-                @click="selectedDept = 'operation'"
+                :class="{ active: selectedDept === dept.id }"
+                @click="selectedDept = dept.id"
               >
-                <text>🚚 运营部</text>
-              </view>
-              <view 
-                class="filter-item" 
-                :class="{ active: selectedDept === 'qc' }"
-                @click="selectedDept = 'qc'"
-              >
-                <text>✅ 质控部</text>
-              </view>
-              <view 
-                class="filter-item" 
-                :class="{ active: selectedDept === 'customer' }"
-                @click="selectedDept = 'customer'"
-              >
-                <text>💬 客服部</text>
-              </view>
-              <view 
-                class="filter-item" 
-                :class="{ active: selectedDept === 'finance' }"
-                @click="selectedDept = 'finance'"
-              >
-                <text>💰 财务部</text>
+                <text>{{ dept.name }}</text>
               </view>
             </view>
           </view>
@@ -94,7 +75,13 @@
           <view class="filter-section">
             <text class="filter-title">标签筛选</text>
             <view class="filter-tags">
-              <view class="filter-tag" v-for="tag in allTags" :key="tag" @click="toggleTag(tag)">
+              <view 
+                class="filter-tag" 
+                :class="{ active: selectedTags.includes(tag) }"
+                v-for="tag in allTags" 
+                :key="tag" 
+                @click="toggleTag(tag)"
+              >
                 <text>{{ tag }}</text>
               </view>
             </view>
@@ -112,10 +99,15 @@
             />
           </view>
           
-          <view class="empty-state" v-if="filteredAgents.length === 0">
+          <view class="empty-state" v-if="filteredAgents.length === 0 && !loading">
             <text class="empty-icon">🔍</text>
             <text class="empty-text">未找到匹配的Agent</text>
             <text class="empty-hint">尝试调整筛选条件或搜索关键词</text>
+          </view>
+
+          <view class="loading-state" v-if="loading">
+            <text class="loading-icon">⏳</text>
+            <text class="loading-text">加载中...</text>
           </view>
         </view>
       </view>
@@ -124,30 +116,39 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Layout from '@/components/Layout.vue'
 import AgentCard from '@/components/AgentCard.vue'
-import { mockAgents, type Agent } from '@/data/agents'
+import { agentService } from '@/services/agent'
+import { adminService } from '@/services/admin'
+import type { Agent } from '@/data/agents'
 
 const searchQuery = ref('')
 const selectedDept = ref('')
 const sortBy = ref('hot')
 const selectedTags = ref<string[]>([])
+const agents = ref<Agent[]>([])
+const loading = ref(true)
+const departments = ref<{ id: string; name: string }[]>([])
 
 const allTags = computed(() => {
   const tags = new Set<string>()
-  mockAgents.forEach(agent => agent.tags.forEach(tag => tags.add(tag)))
+  agents.value.forEach(agent => {
+    if (agent.tags && Array.isArray(agent.tags)) {
+      agent.tags.forEach((tag: string) => tags.add(tag))
+    }
+  })
   return Array.from(tags)
 })
 
 const filteredAgents = computed(() => {
-  let result = [...mockAgents]
+  let result = [...agents.value]
   
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
     result = result.filter(a => 
       a.name.toLowerCase().includes(query) || 
-      a.description.toLowerCase().includes(query)
+      (a.description && a.description.toLowerCase().includes(query))
     )
   }
   
@@ -156,20 +157,21 @@ const filteredAgents = computed(() => {
   }
   
   if (selectedTags.value.length > 0) {
-    result = result.filter(a => 
-      selectedTags.value.some(tag => a.tags.includes(tag))
-    )
+    result = result.filter(a => {
+      if (!a.tags || !Array.isArray(a.tags)) return false
+      return selectedTags.value.some(tag => a.tags.includes(tag))
+    })
   }
   
   switch (sortBy.value) {
     case 'rate':
-      result.sort((a, b) => b.successRate - a.successRate)
+      result.sort((a, b) => (b.successRate || 0) - (a.successRate || 0))
       break
     case 'new':
-      result.sort((a, b) => 0)
+      result.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
       break
     default:
-      result.sort((a, b) => b.usageCount - a.usageCount)
+      result.sort((a, b) => (b.usageCount || 0) - (a.usageCount || 0))
   }
   
   return result
@@ -184,6 +186,38 @@ const toggleTag = (tag: string) => {
   }
 }
 
+const loadDepartments = async () => {
+  try {
+    const response = await adminService.getDepartments()
+    // 响应拦截器已解包 ApiResponse.data，此处 response 就是数组
+    if (Array.isArray(response)) {
+      departments.value = response
+    }
+  } catch (error) {
+    console.error('Failed to load departments:', error)
+  }
+}
+
+const loadAgents = async () => {
+  loading.value = true
+  try {
+    const params: any = {}
+    if (selectedDept.value) {
+      params.department = selectedDept.value
+    }
+    if (searchQuery.value) {
+      params.keyword = searchQuery.value
+    }
+    
+    const response = await agentService.list(params)
+    agents.value = response.list || []
+  } catch (error) {
+    console.error('Failed to load agents:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
 const goToDetail = (id: string) => {
   uni.navigateTo({ url: `/pages/agent/detail?id=${id}` })
 }
@@ -195,6 +229,15 @@ const goToChat = (agent: Agent) => {
 const goToBuilder = () => {
   uni.navigateTo({ url: '/pages/builder/index' })
 }
+
+onMounted(() => {
+  loadDepartments()
+  loadAgents()
+})
+
+watch([searchQuery, selectedDept, sortBy], () => {
+  loadAgents()
+})
 </script>
 
 <style lang="scss">
@@ -391,5 +434,29 @@ const goToBuilder = () => {
   font-size: 14px;
   color: #9ca3af;
   margin-top: 8px;
+}
+
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+}
+
+.loading-icon {
+  font-size: 48px;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #9ca3af;
+  margin-top: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 </style>

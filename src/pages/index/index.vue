@@ -22,34 +22,23 @@
           <view class="stat-card">
             <view class="stat-icon primary">🤖</view>
             <view class="stat-info">
-              <text class="stat-value">8</text>
+              <text class="stat-value">{{ stats.totalAgents }}</text>
               <text class="stat-label">可用Agent</text>
             </view>
-            <view class="stat-trend up">↑ 12%</view>
           </view>
           <view class="stat-card">
             <view class="stat-icon success">📊</view>
             <view class="stat-info">
-              <text class="stat-value">1,234</text>
-              <text class="stat-label">今日调用</text>
+              <text class="stat-value">{{ formatNumber(stats.totalCalls) }}</text>
+              <text class="stat-label">总调用次数</text>
             </view>
-            <view class="stat-trend up">↑ 8%</view>
           </view>
           <view class="stat-card">
-            <view class="stat-icon info">⏱️</view>
+            <view class="stat-icon info">💰</view>
             <view class="stat-info">
-              <text class="stat-value">2.3s</text>
-              <text class="stat-label">平均响应</text>
+              <text class="stat-value">¥{{ stats.totalCost.toFixed(2) }}</text>
+              <text class="stat-label">总成本</text>
             </view>
-            <view class="stat-trend down">↓ 5%</view>
-          </view>
-          <view class="stat-card">
-            <view class="stat-icon warning">💰</view>
-            <view class="stat-info">
-              <text class="stat-value">¥125</text>
-              <text class="stat-label">今日消耗</text>
-            </view>
-            <view class="stat-trend up">↑ 3%</view>
           </view>
         </view>
 
@@ -121,25 +110,65 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
 import AgentCard from '@/components/AgentCard.vue'
-import { mockAgents, type Agent } from '@/data/agents'
+import { agentService } from '@/services/agent'
+import { adminService } from '@/services/admin'
+import type { Agent } from '@/data/agents'
 
-const currentDate = new Date().toLocaleDateString('zh-CN', { 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
+const currentDate = new Date().toLocaleDateString('zh-CN', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric'
 })
 
-const favoriteAgents = ref(mockAgents.filter(a => a.isFavorite))
-const recommendAgents = ref(mockAgents.filter(a => !a.isFavorite).slice(0, 3))
+const favoriteAgents = ref<Agent[]>([])
+const recommendAgents = ref<Agent[]>([])
+const stats = ref({
+  totalAgents: 0,
+  totalCalls: 0,
+  totalCost: 0
+})
 
 const todos = ref([
   { id: '1', title: '审核新Agent申请', desc: '车线管理Agent v2.0', priority: 'high', time: '10分钟前' },
   { id: '2', title: '查看成本报表', desc: '4月第一周', priority: 'medium', time: '1小时前' },
   { id: '3', title: '技能更新提醒', desc: '查询路由技能已更新', priority: 'low', time: '3小时前' }
 ])
+
+const loadAgents = async () => {
+  try {
+    const response = await agentService.list({ page: 1, size: 100 })
+    const allAgents = response.list || []
+    favoriteAgents.value = allAgents.filter(a => a.isFavorite)
+    recommendAgents.value = allAgents.filter(a => !a.isFavorite).slice(0, 3)
+  } catch (error) {
+    console.error('Failed to load agents:', error)
+  }
+}
+
+const loadStats = async () => {
+  try {
+    const response = await adminService.getStatistics()
+    stats.value = {
+      totalAgents: response.totalAgents || 0,
+      totalCalls: response.totalCalls || 0,
+      totalCost: response.totalCost || 0
+    }
+  } catch (error) {
+    console.error('Failed to load stats:', error)
+  }
+}
+
+onMounted(() => {
+  loadAgents()
+  loadStats()
+})
+
+const formatNumber = (num: number) => {
+  return num.toLocaleString('zh-CN')
+}
 
 const getDeptIcon = (dept: string) => {
   const icons: Record<string, string> = {

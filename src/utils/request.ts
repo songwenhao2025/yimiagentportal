@@ -60,18 +60,17 @@ request.interceptors.response.use(
       switch (status) {
         case 401:
           uni.showToast({ title: '登录已过期', icon: 'none' })
-          uni.navigateTo({ url: '/pages/login/index' })
+          uni.redirectTo({ url: '/pages/login/index' })
           break
         case 403:
-          uni.showToast({ title: '暂无权限', icon: 'none' })
-          break
-        case 500:
-          uni.showToast({ title: '服务器错误', icon: 'none' })
+          // 权限不足，静默处理，由页面决定是否提示
           break
         default:
-          uni.showToast({ title: error.response.data.message || '请求失败', icon: 'none' })
+          // 其他 HTTP 错误静默处理，由页面自行决定提示方式
+          break
       }
     } else {
+      // 仅网络异常等客户端错误才提示
       uni.showToast({ title: '网络异常', icon: 'none' })
     }
     return Promise.reject(error)
@@ -86,8 +85,8 @@ export const http = {
     return request.get(url, { params })
   },
 
-  post<T = any>(url: string, data?: Record<string, any>): Promise<T> {
-    return request.post(url, data)
+  post<T = any>(url: string, data?: Record<string, any>, config?: Record<string, any>): Promise<T> {
+    return request.post(url, data, config)
   },
 
   put<T = any>(url: string, data?: Record<string, any>): Promise<T> {

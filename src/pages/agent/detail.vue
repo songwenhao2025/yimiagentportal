@@ -7,7 +7,7 @@
         </view>
       </view>
 
-      <view class="page-content">
+      <view class="page-content" v-if="agent">
         <view class="agent-header">
           <view class="agent-icon-large">
             <text>{{ getDeptIcon(agent.department) }}</text>
@@ -57,7 +57,7 @@
           <view class="info-list">
             <view class="info-item">
               <text class="info-label">创建者</text>
-              <text class="info-value">{{ agent.creator }}</text>
+              <text class="info-value">{{ agent.creatorId || '-' }}</text>
             </view>
             <view class="info-item">
               <text class="info-label">创建时间</text>
@@ -122,16 +122,13 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
-import { mockAgents, type Agent } from '@/data/agents'
+import { agentService } from '@/services/agent'
+import type { Agent } from '@/data/agents'
 
 const contentHeight = ref(600)
-const agent = ref<Agent>(mockAgents[0])
+const agent = ref<Agent | null>(null)
 
-const reviews = ref([
-  { id: '1', user: '李经理', rating: 5, content: '非常好用，路由规划很准确，节省了很多时间！', time: '2024-04-10' },
-  { id: '2', user: '王主管', rating: 4, content: '响应速度快，建议增加更多自定义选项', time: '2024-04-08' },
-  { id: '3', user: '张工', rating: 5, content: '功能强大，推荐使用！', time: '2024-04-05' }
-])
+const reviews = ref<{ id: string; user: string; rating: number; content: string; time: string }[]>([])
 
 const getDeptIcon = (dept: string) => {
   const icons: Record<string, string> = {
@@ -163,6 +160,7 @@ const getStatusText = (status: string) => {
 }
 
 const handleFavorite = () => {
+  if (!agent.value) return
   agent.value.isFavorite = !agent.value.isFavorite
   uni.showToast({
     title: agent.value.isFavorite ? '已收藏' : '取消收藏',
@@ -171,23 +169,26 @@ const handleFavorite = () => {
 }
 
 const handleUse = () => {
+  if (!agent.value) return
   uni.redirectTo({ url: `/pages/agent/chat?id=${agent.value.id}` })
 }
 
-onMounted(() => {
+onMounted(async () => {
   uni.getSystemInfo({
     success: (res) => {
       contentHeight.value = res.windowHeight - 300
     }
   })
-  
+
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
   const options = (currentPage as unknown as { options?: { id?: string } }).options
   if (options?.id) {
-    const found = mockAgents.find(a => a.id === options.id)
-    if (found) {
-      agent.value = found
+    try {
+      const agentData = await agentService.get(options.id)
+      agent.value = agentData as Agent
+    } catch (e) {
+      console.error('Failed to load agent:', e)
     }
   }
 })

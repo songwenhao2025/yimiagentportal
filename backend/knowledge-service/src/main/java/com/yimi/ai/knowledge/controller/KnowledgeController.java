@@ -65,4 +65,25 @@ public class KnowledgeController {
         List<DocumentResponse> response = knowledgeService.search(query, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<CategoryResponse>>> getCategories() {
+        List<CategoryResponse> categories = List.of(
+            new CategoryResponse("1", "操作手册", 45),
+            new CategoryResponse("2", "FAQ", 128),
+            new CategoryResponse("3", "财务文档", 32),
+            new CategoryResponse("4", "技术文档", 67),
+            new CategoryResponse("5", "标准规范", 23)
+        );
+        return ResponseEntity.ok(ApiResponse.success(categories));
+    }
+
+    @lombok.Data
+    @lombok.NoArgsConstructor
+    @lombok.AllArgsConstructor
+    public static class CategoryResponse {
+        private String id;
+        private String name;
+        private int count;
+    }
 }

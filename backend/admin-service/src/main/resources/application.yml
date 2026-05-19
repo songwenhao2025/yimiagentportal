@@ -5,13 +5,13 @@ spring:
   application:
     name: admin-service
   datasource:
-    url: jdbc:mysql://localhost:3306/yimi_ai_portal?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: jdbc:mysql://10.206.20.129:3306/yimi_ai_portal?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
     username: root
-    password: password
+    password: 0AHPeevq2U2xWTi*
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:

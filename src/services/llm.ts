@@ -1,4 +1,4 @@
-import request from '@/utils/request';
+import { http } from '@/utils/request';
 
 export interface Message {
   role: string;
@@ -107,70 +107,36 @@ export interface LogAnalysisResponse {
 }
 
 export async function chat(params: ChatRequest): Promise<ChatResponse> {
-  const response = await request({
-    url: '/api/llm/chat',
-    method: 'POST',
-    data: params,
-  });
-  return response.data;
+  const response = await http.post('/api/llm/chat', params);
+  return response;
 }
 
 export async function generateSkill(params: SkillGenerateRequest): Promise<SkillGenerateResponse> {
-  const response = await request({
-    url: '/api/llm/skills/generate',
-    method: 'POST',
-    data: params,
-  });
-  return response.data;
+  const response = await http.post('/api/llm/skills/generate', params);
+  return response;
 }
 
 export async function generateWorkflow(params: WorkflowGenerateRequest): Promise<WorkflowGenerateResponse> {
-  const response = await request({
-    url: '/api/llm/workflows/generate',
-    method: 'POST',
-    data: params,
-  });
-  return response.data;
+  const response = await http.post('/api/llm/workflows/generate', params);
+  return response;
 }
 
 export async function knowledgeQA(params: KnowledgeQARequest): Promise<KnowledgeQAResponse> {
-  const response = await request({
-    url: '/api/llm/knowledge/qa',
-    method: 'POST',
-    data: params,
-  });
-  return response.data;
+  const response = await http.post('/api/llm/knowledge/qa', params);
+  return response;
 }
 
 export async function analyzeLogs(params: LogAnalysisRequest): Promise<LogAnalysisResponse> {
-  const response = await request({
-    url: '/api/llm/logs/analyze',
-    method: 'POST',
-    data: params,
-  });
-  return response.data;
+  const response = await http.post('/api/llm/logs/analyze', params);
+  return response;
 }
 
 export async function summarize(text: string, maxLength: number = 200): Promise<string> {
-  const response = await request({
-    url: '/api/llm/summarize',
-    method: 'POST',
-    params: {
-      text,
-      maxLength,
-    },
-  });
-  return response.data;
+  const response = await http.post('/api/llm/summarize', undefined, { params: { text, maxLength } });
+  return response;
 }
 
 export async function extractKeywords(text: string, count: number = 10): Promise<string> {
-  const response = await request({
-    url: '/api/llm/keywords',
-    method: 'POST',
-    params: {
-      text,
-      count,
-    },
-  });
-  return response.data;
+  const response = await http.post('/api/llm/keywords', undefined, { params: { text, count } });
+  return response;
 }

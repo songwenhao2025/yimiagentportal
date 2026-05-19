@@ -3,6 +3,7 @@ package com.yimi.ai.admin.service;
 import com.yimi.ai.admin.dto.AuditLogResponse;
 import com.yimi.ai.admin.dto.CostRecordResponse;
 import com.yimi.ai.admin.dto.StatisticsResponse;
+import com.yimi.ai.admin.repository.AgentRepository;
 import com.yimi.ai.admin.repository.AuditLogRepository;
 import com.yimi.ai.admin.repository.CostRecordRepository;
 import com.yimi.ai.common.entity.AuditLog;
@@ -15,9 +16,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -26,6 +29,7 @@ public class AdminService {
 
     private final AuditLogRepository auditLogRepository;
     private final CostRecordRepository costRecordRepository;
+    private final AgentRepository agentRepository;
 
     public PageResponse<AuditLogResponse> getAuditLogs(String userId, String action, String resource, 
             String startTime, String endTime, int page, int size) {
@@ -77,25 +81,55 @@ public class AdminService {
         return PageResponse.of(responses, costPage.getTotalElements(), page, size);
     }
 
-    public StatisticsResponse getStatistics(String startTime, String endTime, String department) {
+    public StatisticsResponse getStatistics(String startTime, String endTime) {
+        long totalAgents = agentRepository.countAll();
+        long totalCalls = agentRepository.sumUsageCount();
+
+        LocalDateTime start = null;
+        LocalDateTime end = null;
+        if (startTime != null && endTime != null) {
+            start = LocalDateTime.parse(startTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            end = LocalDateTime.parse(endTime, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+        }
+
+        BigDecimal totalCost;
+        if (start != null && end != null) {
+            totalCost = costRecordRepository.sumCostByDateBetween(start.toLocalDate(), end.toLocalDate());
+        } else {
+            totalCost = costRecordRepository.sumAllCost();
+        }
+
+        long activeUsers = agentRepository.countActiveUsers(
+                start != null ? start : LocalDateTime.now().minusDays(30),
+                end != null ? end : LocalDateTime.now()
+        );
+
         return StatisticsResponse.builder()
-                .totalAgents(4L)
-                .totalWorkflows(8L)
-                .totalSkills(15L)
-                .totalDocuments(200L)
-                .totalCalls(87500L)
-                .totalCost(25680.00)
-                .activeUsers(50L)
+                .totalAgents(totalAgents)
+                .totalWorkflows(0L)
+                .totalSkills(0L)
+                .totalDocuments(0L)
+                .totalCalls(totalCalls)
+                .totalCost(totalCost != null ? totalCost.doubleValue() : 0.0)
+                .activeUsers(activeUsers)
                 .build();
     }
 
     public List<DepartmentCostResponse> getDepartmentCosts(String startDate, String endDate) {
-        return List.of(
-            DepartmentCostResponse.builder().department("运营部").cost(8560.00).build(),
-            DepartmentCostResponse.builder().department("质控部").cost(5230.00).build(),
-            DepartmentCostResponse.builder().department("客服部").cost(7890.00).build(),
-            DepartmentCostResponse.builder().department("财务部").cost(4000.00).build()
-        );
+        LocalDate start = startDate != null ? LocalDate.parse(startDate) : LocalDate.now().minusMonths(1);
+        LocalDate end = endDate != null ? LocalDate.parse(endDate) : LocalDate.now();
+
+        List<Object[]> results = costRecordRepository.sumCostByDepartment(start, end);
+        List<DepartmentCostResponse> responses = new ArrayList<>();
+        for (Object[] row : results) {
+            String dept = (String) row[0];
+            BigDecimal cost = (BigDecimal) row[1];
+            responses.add(DepartmentCostResponse.builder()
+                    .department(dept)
+                    .cost(cost.doubleValue())
+                    .build());
+        }
+        return responses;
     }
 
     private AuditLogResponse convertToAuditLogResponse(AuditLog log) {
@@ -121,7 +155,7 @@ public class AdminService {
                 .agentName(record.getAgentName())
                 .tokenUsage(record.getTokenUsage())
                 .apiCalls(record.getApiCalls())
-                .cost(record.getCost())
+                .cost(record.getCost() != null ? record.getCost().doubleValue() : null)
                 .date(record.getDate().toString())
                 .build();
     }

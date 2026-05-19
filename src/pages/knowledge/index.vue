@@ -78,22 +78,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
-import { mockDocuments, documentCategories, type KnowledgeDocument } from '@/data/knowledge'
+import { knowledgeService } from '@/services/knowledge'
+import type { KnowledgeDocument } from '@/data/knowledge'
 
 const searchText = ref('')
 const activeCategory = ref('all')
-const docs = ref(mockDocuments)
+const docs = ref<KnowledgeDocument[]>([])
+const categories = ref<{ id: string; name: string }[]>([])
 
-const categories = documentCategories
+const loadDocuments = async () => {
+  try {
+    const params: any = {}
+    if (activeCategory.value !== 'all') {
+      const cat = getCategoryName(activeCategory.value)
+      if (cat) params.category = cat
+    }
+    if (searchText.value) {
+      params.keyword = searchText.value
+    }
+    const response = await knowledgeService.list({ page: 1, size: 100, ...params })
+    docs.value = response.list || []
+  } catch (error) {
+    console.error('Failed to load documents:', error)
+  }
+}
+
+const loadCategories = async () => {
+  try {
+    const cats = await knowledgeService.getCategories()
+    if (Array.isArray(cats)) {
+      categories.value = [
+        { id: 'all', name: '全部' },
+        ...cats.map(c => ({ id: c.id, name: c.name }))
+      ]
+    }
+  } catch (error) {
+    console.error('Failed to load categories:', error)
+  }
+}
 
 const filteredDocs = computed(() => {
   let result = docs.value
-
-  if (activeCategory.value !== 'all') {
-    result = result.filter(d => d.category === getCategoryName(activeCategory.value))
-  }
 
   if (searchText.value) {
     const keyword = searchText.value.toLowerCase()
@@ -152,28 +179,67 @@ const getVectorStatusText = (status: string) => {
 }
 
 const uploadDocument = () => {
-  uni.showActionSheet({
-    itemList: ['上传PDF', '上传Word', '上传Excel', '上传Markdown'],
+  uni.chooseFile({
+    count: 1,
+    extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'md', 'txt'],
     success: (res) => {
-      uni.showToast({ title: '上传功能开发中', icon: 'none' })
+      uni.showLoading({ title: '上传中...' })
+      const tempFilePath = res.tempFiles[0]?.path || res.tempFilePaths?.[0]
+      if (!tempFilePath) {
+        uni.hideLoading()
+        uni.showToast({ title: '未选择文件', icon: 'none' })
+        return
+      }
+
+      const token = uni.getStorageSync('token') || ''
+      uni.uploadFile({
+        url: '/api/knowledge/upload',
+        filePath: tempFilePath,
+        name: 'file',
+        header: { Authorization: `Bearer ${token}` },
+        formData: { category: getCategoryName(activeCategory.value) || '' },
+        success: (uploadRes) => {
+          uni.hideLoading()
+          if (uploadRes.statusCode === 200) {
+            uni.showToast({ title: '上传成功', icon: 'success' })
+            loadDocuments()
+          } else {
+            uni.showToast({ title: '上传失败', icon: 'none' })
+          }
+        },
+        fail: (err) => {
+          uni.hideLoading()
+          uni.showToast({ title: '上传失败: ' + JSON.stringify(err), icon: 'none' })
+        }
+      })
+    },
+    fail: () => {
+      uni.showToast({ title: '取消选择文件', icon: 'none' })
     }
   })
 }
+
+onMounted(() => {
+  loadCategories()
+  loadDocuments()
+})
 
 const previewDoc = (doc: KnowledgeDocument) => {
   uni.showToast({ title: `预览: ${doc.title}`, icon: 'none' })
 }
 
-const deleteDoc = (doc: KnowledgeDocument) => {
+const deleteDoc = async (doc: KnowledgeDocument) => {
   uni.showModal({
     title: '确认删除',
     content: `确定要删除 "${doc.title}" 吗？`,
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        const idx = docs.value.findIndex(d => d.id === doc.id)
-        if (idx !== -1) {
-          docs.value.splice(idx, 1)
+        try {
+          await knowledgeService.delete(doc.id)
           uni.showToast({ title: '已删除', icon: 'success' })
+          loadDocuments()
+        } catch (e) {
+          uni.showToast({ title: '删除失败', icon: 'none' })
         }
       }
     }

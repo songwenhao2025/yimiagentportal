@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -27,7 +28,7 @@ public class AgentRating {
     private String userId;
 
     @Column(precision = 2, scale = 1, nullable = false)
-    private Double rating;
+    private BigDecimal rating;
 
     @Column(columnDefinition = "TEXT")
     private String comment;

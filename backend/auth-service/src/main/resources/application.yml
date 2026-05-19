@@ -5,18 +5,22 @@ spring:
   application:
     name: auth-service
   datasource:
-    url: jdbc:mysql://localhost:3306/yimi_ai_portal?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: password
+    url: ${DB_URL:jdbc:mysql://10.206.20.129:3306/yimi_ai_portal?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:0AHPeevq2U2xWTi*}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: none
     show-sql: true
     properties:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.MySQL8Dialect
+
+jwt:
+  secret-key: ${JWT_SECRET_KEY:yimi-ai-portal-secret-key-must-be-at-least-256-bits-long-for-security}
+  expiration: ${JWT_EXPIRATION:86400000}
 
 logging:
   level:

@@ -12,6 +12,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,7 +32,7 @@ public class AgentRatingService {
                 .id(UUID.randomUUID().toString())
                 .agentId(agentId)
                 .userId(userId)
-                .rating(request.getRating())
+                .rating(BigDecimal.valueOf(request.getRating()))
                 .comment(request.getComment())
                 .build();
 
@@ -43,7 +44,7 @@ public class AgentRatingService {
         AgentRating rating = ratingRepository.findByAgentIdAndUserId(agentId, userId)
                 .orElseThrow(() -> new BusinessException(404, "评分记录不存在"));
 
-        rating.setRating(request.getRating());
+        rating.setRating(BigDecimal.valueOf(request.getRating()));
         rating.setComment(request.getComment());
 
         AgentRating saved = ratingRepository.save(rating);
@@ -73,7 +74,7 @@ public class AgentRatingService {
                 .id(rating.getId())
                 .agentId(rating.getAgentId())
                 .userId(rating.getUserId())
-                .rating(rating.getRating())
+                .rating(rating.getRating() != null ? rating.getRating().doubleValue() : null)
                 .comment(rating.getComment())
                 .createdAt(rating.getCreatedAt().toString())
                 .build();

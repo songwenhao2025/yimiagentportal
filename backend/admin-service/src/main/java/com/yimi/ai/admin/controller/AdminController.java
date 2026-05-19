@@ -52,7 +52,7 @@ public class AdminController {
             @RequestParam(required = false) String endTime,
             @RequestParam(required = false) String department) {
         
-        StatisticsResponse response = adminService.getStatistics(startTime, endTime, department);
+        StatisticsResponse response = adminService.getStatistics(startTime, endTime);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

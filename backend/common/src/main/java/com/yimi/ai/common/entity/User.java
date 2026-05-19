@@ -1,7 +1,11 @@
 package com.yimi.ai.common.entity;
 
 import com.yimi.ai.common.enums.Department;
+import com.yimi.ai.common.enums.DepartmentConverter;
 import com.yimi.ai.common.enums.UserRole;
+import com.yimi.ai.common.enums.UserRoleConverter;
+import com.yimi.ai.common.enums.UserStatus;
+import com.yimi.ai.common.enums.UserStatusConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -25,12 +29,12 @@ public class User {
     @Column(name = "name", length = 100, nullable = false)
     private String name;
 
-    @Column(length = 50, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Column(length = 20, nullable = false)
+    @Convert(converter = DepartmentConverter.class)
     private Department department;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserRoleConverter.class)
     private UserRole role;
 
     @Column(length = 100, unique = true, nullable = false)
@@ -43,7 +47,7 @@ public class User {
     private String password;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = UserStatusConverter.class)
     @Builder.Default
     private com.yimi.ai.common.enums.UserStatus status = com.yimi.ai.common.enums.UserStatus.ACTIVE;
 

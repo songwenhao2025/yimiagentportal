@@ -6,6 +6,8 @@ import com.yimi.ai.common.enums.AuditResult;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -24,4 +26,10 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, String> {
     Page<AuditLog> findByResult(AuditResult result, Pageable pageable);
 
     Page<AuditLog> findByTimestampBetween(LocalDateTime startTime, LocalDateTime endTime, Pageable pageable);
+
+    @Query("SELECT COUNT(a) FROM AuditLog a")
+    long countAll();
+
+    @Query("SELECT COUNT(a) FROM AuditLog a WHERE a.timestamp BETWEEN :start AND :end")
+    long countByTimestampBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

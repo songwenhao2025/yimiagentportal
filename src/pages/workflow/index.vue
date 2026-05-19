@@ -5,7 +5,7 @@
         <view class="header-content">
           <text class="page-title">流程编排</text>
           <view class="header-actions">
-            <view class="btn primary" @click="createWorkflow">
+            <view class="btn primary" @click="goToDesigner">
               <text>+ 创建新流程</text>
             </view>
           </view>
@@ -57,10 +57,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
-import { mockWorkflows, type Workflow } from '@/data/workflows'
+import { workflowService } from '@/services/workflow'
+import type { Workflow } from '@/data/workflows'
 
-const workflows = mockWorkflows
+const workflows = ref<Workflow[]>([])
 
 const getStatusText = (status: string) => {
   const texts: Record<string, string> = {
@@ -80,6 +82,15 @@ const getTriggerText = (type: string) => {
   return texts[type] || type
 }
 
+const loadWorkflows = async () => {
+  try {
+    const response = await workflowService.list({ page: 1, size: 100 })
+    workflows.value = response.list || []
+  } catch (error) {
+    console.error('Failed to load workflows:', error)
+  }
+}
+
 const selectWorkflow = (wf: Workflow) => {
   uni.showToast({ title: `查看: ${wf.name}`, icon: 'none' })
 }
@@ -88,21 +99,31 @@ const runWorkflow = (wf: Workflow) => {
   uni.showModal({
     title: '运行流程',
     content: `确认运行 "${wf.name}" 吗？`,
-    success: (res) => {
+    success: async (res) => {
       if (res.confirm) {
-        uni.showToast({ title: '流程已启动', icon: 'success' })
+        try {
+          await workflowService.execute(wf.id)
+          uni.showToast({ title: '流程已启动', icon: 'success' })
+          loadWorkflows()
+        } catch (error) {
+          console.error('Failed to run workflow:', error)
+        }
       }
     }
   })
 }
 
 const editWorkflow = (wf: Workflow) => {
-  uni.showToast({ title: `编辑: ${wf.name}`, icon: 'none' })
+  uni.navigateTo({ url: `/pages/workflow/designer?id=${wf.id}` })
 }
 
-const createWorkflow = () => {
-  uni.showToast({ title: '创建流程开发中', icon: 'none' })
+const goToDesigner = () => {
+  uni.navigateTo({ url: '/pages/workflow/designer' })
 }
+
+onMounted(() => {
+  loadWorkflows()
+})
 </script>
 
 <style lang="scss">
@@ -149,6 +170,12 @@ const createWorkflow = () => {
       opacity: 0.9;
     }
   }
+
+  &.secondary {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 1px solid #e5e7eb;
+  }
 }
 
 .page-content {
@@ -160,6 +187,7 @@ const createWorkflow = () => {
   grid-template-columns: repeat(2, 1fr);
   gap: 20px;
 }
+
 
 .workflow-card {
   background: #fff;

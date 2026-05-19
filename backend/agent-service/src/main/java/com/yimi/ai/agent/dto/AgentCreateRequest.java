@@ -27,6 +27,19 @@ public class AgentCreateRequest {
 
     private List<String> tags;
 
-    @NotBlank(message = "创建者ID不能为空")
     private String creatorId;
+
+    private String status;
+
+    private Boolean isFavorite;
+
+    private Double successRate;
+
+    private Double avgTime;
+
+    private Integer dailyCalls;
+
+    private Integer usageCount;
+
+    private Double rating;
 }

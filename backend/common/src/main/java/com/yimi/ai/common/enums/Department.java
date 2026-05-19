@@ -24,8 +24,11 @@ public enum Department {
     }
 
     public static Department fromCode(String code) {
+        if (code == null) {
+            return OPERATION;
+        }
         for (Department dept : values()) {
-            if (dept.code.equals(code)) {
+            if (dept.code.equalsIgnoreCase(code) || dept.name().equalsIgnoreCase(code) || dept.description.equals(code)) {
                 return dept;
             }
         }

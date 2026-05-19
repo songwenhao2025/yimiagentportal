@@ -67,7 +67,7 @@ public class SkillService {
                 .parameters(serializeParameters(request.getParameters()))
                 .returnType(request.getReturnType())
                 .version(request.getVersion() != null ? request.getVersion() : "1.0.0")
-                .creatorId(request.getCreatorId())
+                .creatorId(request.getCreatorId() != null ? request.getCreatorId() : "system")
                 .status(SkillStatus.DRAFT)
                 .usageCount(0)
                 .timeout(request.getTimeout() != null ? request.getTimeout() : 30)

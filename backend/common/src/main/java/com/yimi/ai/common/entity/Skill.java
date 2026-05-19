@@ -1,5 +1,7 @@
 package com.yimi.ai.common.entity;
 
+import com.yimi.ai.common.enums.SkillStatusConverter;
+import com.yimi.ai.common.enums.SkillTypeConverter;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -27,7 +29,7 @@ public class Skill {
     private String description;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = SkillTypeConverter.class)
     private com.yimi.ai.common.enums.SkillType type;
 
     @Column(length = 50, nullable = false)
@@ -52,7 +54,7 @@ public class Skill {
     private LocalDateTime updatedAt;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = SkillStatusConverter.class)
     @Builder.Default
     private com.yimi.ai.common.enums.SkillStatus status = com.yimi.ai.common.enums.SkillStatus.DRAFT;
 

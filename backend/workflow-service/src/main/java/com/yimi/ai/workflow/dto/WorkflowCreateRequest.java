@@ -25,7 +25,6 @@ public class WorkflowCreateRequest {
 
     private String cronExpression;
 
-    @NotBlank(message = "创建者ID不能为空")
     private String creatorId;
 
     private List<WorkflowNodeRequest> nodes;

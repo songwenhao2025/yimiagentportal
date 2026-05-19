@@ -17,6 +17,6 @@ public class PageResponse<T> {
     private int size;
 
     public static <T> PageResponse<T> of(List<T> list, long total, int page, int size) {
-        return new PageResponse<>(list, total, page, size);
+        return new PageResponse<T>(list, total, page, size);
     }
 }

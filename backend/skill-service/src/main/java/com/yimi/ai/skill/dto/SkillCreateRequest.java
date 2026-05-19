@@ -32,7 +32,6 @@ public class SkillCreateRequest {
 
     private String version;
 
-    @NotBlank(message = "创建者ID不能为空")
     private String creatorId;
 
     private Integer timeout;

@@ -32,10 +32,11 @@
 
       <view class="page-content">
         <view class="stats-grid">
-          <StatCard icon="📊" value="12,345" label="今日调用" :trend="12" color="primary" />
-          <StatCard icon="✅" value="98.5%" label="成功率" :trend="2" color="success" />
-          <StatCard icon="⏱️" value="2.3s" label="平均延迟" :trend="-5" color="info" />
-          <StatCard icon="💰" value="¥1,234" label="本月消耗" :trend="8" color="warning" />
+          <StatCard icon="📊" :value="totalCallsFormatted" label="总调用次数" :trend="12" color="primary" v-if="stats" />
+          <StatCard icon="📊" value="0" label="总调用次数" :trend="12" color="primary" v-else />
+          <StatCard icon="✅" :value="stats ? stats.totalAgents + '个' : '0'" label="Agent数量" :trend="2" color="success" />
+          <StatCard icon="💰" :value="stats ? '¥' + stats.totalCost.toFixed(2) : '¥0'" label="总费用" :trend="8" color="warning" />
+          <StatCard icon="👥" :value="stats ? stats.activeUsers + '人' : '0'" label="活跃用户" :trend="5" color="info" />
         </view>
 
         <view class="main-grid">
@@ -128,30 +129,21 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import Layout from '@/components/Layout.vue'
 import StatCard from '@/components/StatCard.vue'
+import { adminService } from '@/services/admin'
 
 const timeRange = ref('7d')
+const stats = ref<any>(null)
+const loading = ref(true)
 
 const chartData = [45, 68, 52, 89, 73, 95, 82]
 const chartLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
-const agentRanking = [
-  { name: '智能客服Agent', department: '客服部', count: 3240 },
-  { name: '路由规划Agent', department: '运营部', count: 2890 },
-  { name: '时效洞察Agent', department: '质控部', count: 2340 },
-  { name: '报表审核Agent', department: '财务部', count: 1890 },
-  { name: '车线管理Agent', department: '运营部', count: 1560 }
-]
+const agentRanking = ref<{ name: string; department: string; count: number }[]>([])
 
-const skillRanking = [
-  { name: '发送短信', category: '通知服务', count: 23400 },
-  { name: '创建工单', category: '工单管理', count: 15600 },
-  { name: '查询路由', category: '物流查询', count: 12580 },
-  { name: '时效计算', category: '物流计算', count: 8920 },
-  { name: '查询库存', category: '仓储管理', count: 6750 }
-]
+const skillRanking = ref<{ name: string; category: string; count: number }[]>([])
 
 const ratingData = [45, 32, 15, 6, 2]
 
@@ -161,6 +153,23 @@ const getRankClass = (idx: number) => {
   if (idx === 2) return 'bronze'
   return ''
 }
+
+const totalCallsFormatted = computed(() => {
+  if (!stats.value) return '0'
+  return stats.value.totalCalls.toLocaleString()
+})
+
+onMounted(async () => {
+  loading.value = true
+  try {
+    const res = await adminService.getStatistics()
+    stats.value = res
+  } catch (e) {
+    console.error('Failed to load statistics:', e)
+  } finally {
+    loading.value = false
+  }
+})
 </script>
 
 <style lang="scss">

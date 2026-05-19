@@ -14,21 +14,28 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class AgentService {
 
     private final AgentRepository agentRepository;
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${llm.service.url:http://localhost:8087}")
+    private String llmServiceUrl;
 
     public PageResponse<AgentResponse> list(String department, String status, String keyword, int page, int size) {
         Pageable pageable = PageRequest.of(page - 1, size);
@@ -52,6 +59,7 @@ public class AgentService {
 
         List<AgentResponse> responses = agentPage.getContent().stream()
                 .map(this::convertToResponse)
+                .filter(r -> r != null)
                 .toList();
 
         return PageResponse.of(responses, agentPage.getTotalElements(), page, size);
@@ -70,13 +78,14 @@ public class AgentService {
                 .description(request.getDescription())
                 .department(Department.fromCode(request.getDepartment()))
                 .tags(serializeTags(request.getTags()))
-                .creatorId(request.getCreatorId())
-                .status(AgentStatus.PENDING)
-                .isFavorite(false)
-                .successRate(0.0)
-                .avgTime(0.0)
-                .dailyCalls(0)
-                .usageCount(0)
+                .creatorId("system")
+                .status(request.getStatus() != null ? AgentStatus.fromCode(request.getStatus()) : AgentStatus.PENDING)
+                .isFavorite(request.getIsFavorite() != null ? request.getIsFavorite() : false)
+                .successRate(request.getSuccessRate() != null ? BigDecimal.valueOf(request.getSuccessRate()) : BigDecimal.ZERO)
+                .avgTime(request.getAvgTime() != null ? BigDecimal.valueOf(request.getAvgTime()) : BigDecimal.ZERO)
+                .dailyCalls(request.getDailyCalls() != null ? request.getDailyCalls() : 0)
+                .usageCount(request.getUsageCount() != null ? request.getUsageCount() : 0)
+                .rating(request.getRating() != null ? BigDecimal.valueOf(request.getRating()) : null)
                 .build();
 
         Agent saved = agentRepository.save(agent);
@@ -112,15 +121,21 @@ public class AgentService {
         }
 
         long startTime = System.currentTimeMillis();
-        
-        String output = simulateAgentCall(agent.getName(), request.getInput());
-        
+
+        String output = callLlm(agent.getName(), agent.getDescription(), request.getInput());
+
         long duration = System.currentTimeMillis() - startTime;
 
         agent.setUsageCount(agent.getUsageCount() + 1);
         agent.setDailyCalls(agent.getDailyCalls() + 1);
-        agent.setSuccessRate((agent.getSuccessRate() * (agent.getUsageCount() - 1) + 100) / agent.getUsageCount());
-        agent.setAvgTime((agent.getAvgTime() * (agent.getUsageCount() - 1) + duration) / agent.getUsageCount());
+
+        int usageCount = agent.getUsageCount();
+        agent.setSuccessRate(agent.getSuccessRate().multiply(BigDecimal.valueOf(usageCount - 1))
+                .add(BigDecimal.valueOf(100))
+                .divide(BigDecimal.valueOf(usageCount), 2, RoundingMode.HALF_UP));
+        agent.setAvgTime(agent.getAvgTime().multiply(BigDecimal.valueOf(usageCount - 1))
+                .add(BigDecimal.valueOf(duration))
+                .divide(BigDecimal.valueOf(usageCount), 2, RoundingMode.HALF_UP));
         agentRepository.save(agent);
 
         return AgentCallResponse.builder()
@@ -129,26 +144,81 @@ public class AgentService {
                 .build();
     }
 
-    private String simulateAgentCall(String agentName, String input) {
-        return String.format("您好！我是%s，已收到您的请求：%s\n\n这是我的响应内容...", agentName, input);
+    @SuppressWarnings("unchecked")
+    private String callLlm(String agentName, String agentDescription, String userInput) {
+        try {
+            Map<String, Object> body = Map.of(
+                "messages", List.of(
+                    Map.of("role", "system", "content",
+                        String.format("你是一个专业的AI助手，扮演角色：%s。角色描述：%s。请用专业、友好的语气回答问题。", agentName, agentDescription)),
+                    Map.of("role", "user", "content", userInput)
+                )
+            );
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                llmServiceUrl + "/api/llm/chat",
+                HttpMethod.POST,
+                entity,
+                Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+                if (data != null && data.containsKey("choices")) {
+                    List<Map<String, Object>> choices = (List<Map<String, Object>>) data.get("choices");
+                    if (!choices.isEmpty()) {
+                        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
+                        return (String) message.get("content");
+                    }
+                }
+            }
+            return "抱歉，AI服务暂时无法响应。";
+        } catch (Exception e) {
+            return "AI服务调用失败：" + e.getMessage();
+        }
     }
 
     private AgentResponse convertToResponse(Agent agent) {
+        if (agent == null) {
+            return null;
+        }
+        List<String> agentTags = Collections.emptyList();
+        try {
+            agentTags = deserializeTags(agent.getTags());
+        } catch (Exception e) {
+            agentTags = Collections.emptyList();
+        }
+        
+        String departmentCode = null;
+        if (agent.getDepartment() != null) {
+            departmentCode = agent.getDepartment().getCode();
+        }
+        
+        String statusCode = null;
+        if (agent.getStatus() != null) {
+            statusCode = agent.getStatus().getCode();
+        }
+        
         return AgentResponse.builder()
                 .id(agent.getId())
                 .name(agent.getName())
                 .description(agent.getDescription())
-                .department(agent.getDepartment().getCode())
-                .tags(deserializeTags(agent.getTags()))
-                .successRate(agent.getSuccessRate())
-                .avgTime(agent.getAvgTime())
+                .department(departmentCode)
+                .tags(agentTags)
+                .successRate(agent.getSuccessRate() != null ? agent.getSuccessRate().doubleValue() : null)
+                .avgTime(agent.getAvgTime() != null ? agent.getAvgTime().doubleValue() : null)
                 .dailyCalls(agent.getDailyCalls())
                 .usageCount(agent.getUsageCount())
                 .creatorId(agent.getCreatorId())
-                .createdAt(agent.getCreatedAt().toString())
-                .status(agent.getStatus().getCode())
+                .createdAt(agent.getCreatedAt() != null ? agent.getCreatedAt().toString() : null)
+                .status(statusCode)
                 .isFavorite(agent.getIsFavorite())
-                .rating(agent.getRating())
+                .rating(agent.getRating() != null ? agent.getRating().doubleValue() : null)
                 .build();
     }
 

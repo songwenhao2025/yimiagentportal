@@ -6,7 +6,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "workflows")
@@ -53,7 +56,15 @@ public class Workflow {
 
     @Column(name = "success_rate", precision = 5, scale = 2, nullable = false)
     @Builder.Default
-    private Double successRate = 0.0;
+    private BigDecimal successRate = BigDecimal.ZERO;
+
+    @OneToMany(mappedBy = "workflowId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<WorkflowNode> nodes = new ArrayList<>();
+
+    @OneToMany(mappedBy = "workflowId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<WorkflowEdge> edges = new ArrayList<>();
 
     @PrePersist
     protected void onCreate() {

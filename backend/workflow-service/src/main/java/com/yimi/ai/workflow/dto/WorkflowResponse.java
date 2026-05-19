@@ -27,6 +27,7 @@ public class WorkflowResponse {
     private List<WorkflowEdgeResponse> edges;
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class WorkflowNodeResponse {
@@ -41,6 +42,7 @@ public class WorkflowResponse {
     }
 
     @Data
+    @Builder
     @NoArgsConstructor
     @AllArgsConstructor
     public static class WorkflowEdgeResponse {
