@@ -1,10 +1,15 @@
 package com.yimi.ai.common.entity;
 
+import com.yimi.ai.common.enums.DocumentStatus;
+import com.yimi.ai.common.enums.DocumentType;
+import com.yimi.ai.common.enums.VectorStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.LocalDateTime;
 
@@ -25,7 +30,8 @@ public class KnowledgeDocument {
 
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
-    private com.yimi.ai.common.enums.DocumentType type;
+    @JdbcTypeCode(SqlTypes.CHAR)
+    private DocumentType type = DocumentType.pdf;
 
     @Column(nullable = false)
     @Builder.Default
@@ -42,13 +48,15 @@ public class KnowledgeDocument {
 
     @Column(length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Builder.Default
-    private com.yimi.ai.common.enums.DocumentStatus status = com.yimi.ai.common.enums.DocumentStatus.UPLOADING;
+    private DocumentStatus status = DocumentStatus.uploading;
 
     @Column(name = "vector_status", length = 20, nullable = false)
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.CHAR)
     @Builder.Default
-    private com.yimi.ai.common.enums.VectorStatus vectorStatus = com.yimi.ai.common.enums.VectorStatus.PENDING;
+    private VectorStatus vectorStatus = VectorStatus.pending;
 
     @Column(name = "chunk_count", nullable = false)
     @Builder.Default
@@ -66,6 +74,9 @@ public class KnowledgeDocument {
 
     @Column(name = "file_url", length = 500)
     private String fileUrl;
+
+    @Column(columnDefinition = "LONGTEXT")
+    private String content;
 
     @PrePersist
     protected void onCreate() {

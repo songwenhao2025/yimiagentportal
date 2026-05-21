@@ -76,6 +76,26 @@ public class Agent {
     @Column(name = "rating", precision = 2, scale = 1)
     private BigDecimal rating;
 
+    @Column(columnDefinition = "JSON")
+    private String skills;
+
+    @Column(columnDefinition = "JSON")
+    private String knowledge;
+
+    @Column(name = "system_prompt", columnDefinition = "TEXT")
+    private String systemPrompt;
+
+    @Column(columnDefinition = "JSON")
+    private String examples;
+
+    @Column(length = 50)
+    @Builder.Default
+    private String model = "qwen-plus";
+
+    @Column(name = "visibility", length = 20)
+    @Builder.Default
+    private String visibility = "public";
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();

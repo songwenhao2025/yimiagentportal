@@ -7,7 +7,7 @@
  */
 export const apiConfig = {
   baseUrl: (import.meta.env.VITE_API_BASE_URL as string) || '',
-  timeout: parseInt((import.meta.env.VITE_API_TIMEOUT as string) || '30000'),
+  timeout: parseInt((import.meta.env.VITE_API_TIMEOUT as string) || '60000'),
 }
 
 /**

@@ -22,6 +22,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/skills/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/skills").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/skills/*/execute").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/skills/*/publish").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

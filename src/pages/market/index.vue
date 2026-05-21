@@ -83,8 +83,13 @@
                 <text class="stat-item">👍 {{ agent.successRate }}%</text>
                 <text class="stat-item">⚡ {{ agent.avgTime }}s</text>
               </view>
-              <view class="use-btn" @click.stop="goToChat(agent)">
-                <text>使用</text>
+              <view class="agent-actions">
+                <view class="edit-btn" @click.stop="editAgent(agent)">
+                  <text>编辑</text>
+                </view>
+                <view class="use-btn" @click.stop="goToChat(agent)">
+                  <text>使用</text>
+                </view>
               </view>
             </view>
           </view>
@@ -194,6 +199,10 @@ const goToChat = (agent: Agent) => {
 
 const goToBuilder = () => {
   uni.navigateTo({ url: '/pages/builder/index' })
+}
+
+const editAgent = (agent: Agent) => {
+  uni.navigateTo({ url: `/pages/builder/index?id=${agent.id}` })
 }
 
 onMounted(() => {
@@ -421,6 +430,22 @@ watch([searchQuery, selectedDept, sortBy], () => {
 .stat-item {
   font-size: 12px;
   color: #888;
+}
+
+.agent-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.edit-btn {
+  padding: 6px 16px;
+  border-radius: 16px;
+  background: #f5f5f5;
+  color: #666;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:hover { background: #e6e6e6; }
 }
 
 .use-btn {

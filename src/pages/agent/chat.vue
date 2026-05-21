@@ -19,6 +19,8 @@
           class="chat-scroll"
           :scroll-into-view="scrollToId"
           scroll-with-animation
+          :scroll-top="scrollTop"
+          enable-flex
         >
           <view class="welcome-card">
             <view class="welcome-icon">🤖</view>
@@ -79,7 +81,6 @@
 import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
 import { agentService } from '@/services/agent'
-import { llmService } from '@/services/llm'
 import type { Agent } from '@/data/agents'
 
 interface Message {
@@ -92,6 +93,7 @@ interface Message {
 const inputText = ref('')
 const isTyping = ref(false)
 const scrollToId = ref('')
+const scrollTop = ref(0)
 const agent = ref<Agent>({
   id: '', name: '', description: '', department: '', status: 'pending',
   tags: [], successRate: 0, avgTime: 0, dailyCalls: 0, usageCount: 0,
@@ -108,6 +110,7 @@ const getStatusText = (status: string) => {
 
 const sendMessage = async () => {
   if (!inputText.value.trim()) return
+  if (!agent.value.id) return
 
   const userMsg: Message = {
     id: Date.now().toString(),
@@ -123,16 +126,11 @@ const sendMessage = async () => {
   isTyping.value = true
 
   try {
-    const res = await llmService.chat({
-      messages: [
-        { role: 'system', content: `你是一个专业的AI助手，扮演角色：${agent.value.name}。角色描述：${agent.value.description}。请用专业、友好的语气回答问题。` },
-        { role: 'user', content: currentInput }
-      ]
-    })
+    const res = await agentService.call(agent.value.id, currentInput)
     isTyping.value = false
     const replyMsg: Message = {
       id: (Date.now() + 1).toString(),
-      content: res.choices?.[0]?.message?.content || '抱歉，AI服务未能返回有效回复。',
+      content: res.output || '抱歉，AI服务未能返回有效回复。',
       isUser: false,
       time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
     }
@@ -158,6 +156,7 @@ const sendQuick = (action: string) => {
 
 const scrollToBottom = () => {
   setTimeout(() => {
+    scrollTop.value = 99999
     scrollToId.value = 'msg-' + messages.value[messages.value.length - 1]?.id
   }, 100)
 }
@@ -191,8 +190,10 @@ onMounted(async () => {
 .page {
   display: flex;
   flex-direction: column;
-  height: calc(100vh - 64px);
+  min-height: calc(100vh - 112px);
   background: #f5f7fa;
+  margin: -24px;
+  padding: 24px;
 }
 
 .page-header {
@@ -241,11 +242,16 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
+  height: calc(100vh - 180px);
 }
 
 .chat-scroll {
   flex: 1;
   padding: 20px;
+  min-height: 0;
+  overflow-y: auto;
+  height: calc(100vh - 260px);
 }
 
 .welcome-card {

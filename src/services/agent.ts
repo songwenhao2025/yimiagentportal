@@ -72,6 +72,6 @@ export const agentService = {
    * 调用Agent
    */
   async call(id: string, input: string): Promise<{ output: string; duration: number }> {
-    return http.post(`/api/agents/${id}/call`, { input })
+    return http.post(`/api/agents/${id}/chat`, { input })
   },
 }

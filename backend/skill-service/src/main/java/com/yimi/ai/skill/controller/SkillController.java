@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/skills")
 @RequiredArgsConstructor
@@ -60,5 +62,11 @@ public class SkillController {
     public ResponseEntity<ApiResponse<SkillResponse>> publish(@PathVariable String id) {
         SkillResponse response = skillService.publish(id);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/execute")
+    public ResponseEntity<ApiResponse<String>> execute(@PathVariable String id, @RequestBody Map<String, Object> request) {
+        String result = skillService.execute(id, request);
+        return ResponseEntity.ok(ApiResponse.success(result));
     }
 }

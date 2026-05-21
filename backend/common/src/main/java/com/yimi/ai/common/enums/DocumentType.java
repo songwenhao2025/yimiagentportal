@@ -1,11 +1,11 @@
 package com.yimi.ai.common.enums;
 
 public enum DocumentType {
-    PDF("pdf", "PDF文件"),
-    WORD("word", "Word文档"),
-    EXCEL("excel", "Excel表格"),
-    MARKDOWN("markdown", "Markdown文件"),
-    URL("url", "网页链接");
+    pdf("pdf", "PDF文件"),
+    word("word", "Word文档"),
+    excel("excel", "Excel表格"),
+    markdown("markdown", "Markdown文件"),
+    url("url", "网页链接");
 
     private final String code;
     private final String description;
@@ -29,6 +29,6 @@ public enum DocumentType {
                 return type;
             }
         }
-        return PDF;
+        return pdf;
     }
 }

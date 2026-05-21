@@ -64,8 +64,8 @@ public class KnowledgeService {
                 .type(DocumentType.fromCode(request.getType()))
                 .size(request.getSize() != null ? request.getSize() : 0L)
                 .uploadedBy(request.getUploadedBy())
-                .status(DocumentStatus.UPLOADING)
-                .vectorStatus(VectorStatus.PENDING)
+                .status(DocumentStatus.uploading)
+                .vectorStatus(VectorStatus.pending)
                 .chunkCount(0)
                 .hitCount(0)
                 .category(request.getCategory())
@@ -115,8 +115,8 @@ public class KnowledgeService {
         doc.setTitle(file.getOriginalFilename());
         doc.setFilePath("/uploads/" + fileName);
         doc.setCategory(category != null ? category : "default");
-        doc.setStatus(DocumentStatus.UPLOADING);
-        doc.setVectorStatus(VectorStatus.PENDING);
+        doc.setStatus(DocumentStatus.uploading);
+        doc.setVectorStatus(VectorStatus.pending);
         doc.setSize(file.getSize());
         doc.setUploadedBy("system");
 
@@ -153,6 +153,7 @@ public class KnowledgeService {
                 .category(document.getCategory())
                 .filePath(document.getFilePath())
                 .fileUrl(document.getFileUrl())
+                .content(document.getContent())
                 .build();
     }
 }

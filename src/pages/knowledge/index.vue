@@ -67,6 +67,27 @@
           <text class="empty-text">暂无文档</text>
         </view>
       </view>
+
+      <!-- Preview Dialog -->
+      <view class="dialog-overlay" v-if="showPreview">
+        <view class="dialog-mask" @click="showPreview = false"></view>
+        <view class="dialog large">
+          <view class="dialog-header">
+            <text class="dialog-title">{{ previewDocData?.title }}</text>
+            <text class="dialog-close" @click="showPreview = false">×</text>
+          </view>
+          <view class="dialog-body preview-body">
+            <scroll-view scroll-y class="preview-scroll">
+              <text class="preview-content">{{ previewDocData?.content }}</text>
+            </scroll-view>
+          </view>
+          <view class="dialog-footer">
+            <view class="btn secondary" @click="showPreview = false">
+              <text>关闭</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </Layout>
 </template>
@@ -81,6 +102,8 @@ const searchText = ref('')
 const activeCategory = ref('all')
 const docs = ref<KnowledgeDocument[]>([])
 const categories = ref<{ id: string; name: string }[]>([])
+const showPreview = ref(false)
+const previewDocData = ref<KnowledgeDocument | null>(null)
 
 const filteredDocs = computed(() => {
   let result = docs.value
@@ -149,7 +172,8 @@ onMounted(() => {
 })
 
 const previewDoc = (doc: KnowledgeDocument) => {
-  uni.showToast({ title: `预览: ${doc.title}`, icon: 'none' })
+  previewDocData.value = doc
+  showPreview.value = true
 }
 
 const deleteDoc = async (doc: KnowledgeDocument) => {
@@ -323,4 +347,93 @@ const deleteDoc = async (doc: KnowledgeDocument) => {
 
 .empty-icon { font-size: 48px; opacity: 0.5; margin-bottom: 12px; }
 .empty-text { font-size: 16px; color: #888; }
+
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dialog-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dialog {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+
+  &.large {
+    max-width: 800px;
+  }
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.dialog-close {
+  font-size: 24px;
+  color: #999;
+  cursor: pointer;
+  line-height: 1;
+
+  &:hover {
+    color: #666;
+  }
+}
+
+.dialog-body {
+  padding: 20px;
+}
+
+.preview-body {
+  max-height: 60vh;
+}
+
+.preview-scroll {
+  max-height: 50vh;
+}
+
+.preview-content {
+  font-size: 14px;
+  line-height: 1.8;
+  color: #333;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+}
 </style>

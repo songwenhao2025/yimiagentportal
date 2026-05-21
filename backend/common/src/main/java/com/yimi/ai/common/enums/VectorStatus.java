@@ -1,9 +1,9 @@
 package com.yimi.ai.common.enums;
 
 public enum VectorStatus {
-    PENDING("pending", "待处理"),
-    INDEXING("indexing", "索引中"),
-    COMPLETED("completed", "已完成");
+    pending("pending", "待处理"),
+    indexing("indexing", "索引中"),
+    completed("completed", "已完成");
 
     private final String code;
     private final String description;
@@ -27,6 +27,6 @@ public enum VectorStatus {
                 return status;
             }
         }
-        return PENDING;
+        return pending;
     }
 }

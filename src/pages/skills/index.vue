@@ -49,10 +49,10 @@
             <text class="meta-tag">{{ skill.usageCount }}次</text>
           </view>
           <view class="skill-actions">
-            <view class="action-btn secondary">
+            <view class="action-btn secondary" @click="openEditDialog(skill)">
               <text>编辑</text>
             </view>
-            <view class="action-btn primary">
+            <view class="action-btn primary" @click="openDetailDialog(skill)">
               <text>详情</text>
             </view>
           </view>
@@ -117,6 +117,112 @@
           </view>
         </view>
       </view>
+
+      <!-- Edit Dialog -->
+      <view class="dialog-overlay" v-if="showEditDialog">
+        <view class="dialog-mask" @click="showEditDialog = false"></view>
+        <view class="dialog">
+          <view class="dialog-header">
+            <text class="dialog-title">编辑技能</text>
+            <text class="dialog-close" @click="showEditDialog = false">×</text>
+          </view>
+          <view class="dialog-body">
+            <view class="form-group">
+              <text class="form-label">技能名称 <text class="required">*</text></text>
+              <input class="form-input" type="text" v-model="createFormData.name" placeholder="请输入技能名称" />
+            </view>
+            <view class="form-group">
+              <text class="form-label">技能描述</text>
+              <textarea class="form-textarea" v-model="createFormData.description" placeholder="请描述技能功能" rows="3"></textarea>
+            </view>
+            <view class="form-row">
+              <view class="form-group">
+                <text class="form-label">技能类型</text>
+                <picker class="form-select" mode="selector" :range="skillTypes" range-key="label" :value="createTypeIndex" @change="onTypeChange">
+                  <view class="select-value">{{ skillTypes[createTypeIndex].label }}</view>
+                </picker>
+              </view>
+              <view class="form-group">
+                <text class="form-label">分类</text>
+                <picker class="form-select" mode="selector" :range="skillCategories" range-key="label" :value="createCategoryIndex" @change="onCategoryChange">
+                  <view class="select-value">{{ skillCategories[createCategoryIndex].label }}</view>
+                </picker>
+              </view>
+            </view>
+            <view class="form-row">
+              <view class="form-group">
+                <text class="form-label">超时时间(秒)</text>
+                <input class="form-input" type="number" v-model.number="createFormData.timeout" placeholder="30" />
+              </view>
+              <view class="form-group" v-if="createFormData.type === 'api'">
+                <text class="form-label">API地址</text>
+                <input class="form-input" type="text" v-model="createFormData.apiEndpoint" placeholder="https://..." />
+              </view>
+            </view>
+          </view>
+          <view class="dialog-footer">
+            <view class="btn secondary" @click="showCreateDialog = false">
+              <text>取消</text>
+            </view>
+            <view class="btn primary" @click="createSkill">
+              <text>保存</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- Detail Dialog -->
+      <view class="dialog-overlay" v-if="showDetailDialog">
+        <view class="dialog-mask" @click="showDetailDialog = false"></view>
+        <view class="dialog">
+          <view class="dialog-header">
+            <text class="dialog-title">技能详情</text>
+            <text class="dialog-close" @click="showDetailDialog = false">×</text>
+          </view>
+          <view class="dialog-body">
+            <view class="detail-item">
+              <text class="detail-label">技能名称</text>
+              <text class="detail-value">{{ currentSkill?.name }}</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">技能类型</text>
+              <text class="detail-value">{{ currentSkill?.type === 'api' ? 'API' : '函数' }}</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">分类</text>
+              <text class="detail-value">{{ currentSkill?.category }}</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">版本</text>
+              <text class="detail-value">v{{ currentSkill?.version }}</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">状态</text>
+              <text class="detail-value">{{ getStatusText(currentSkill?.status || '') }}</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">使用次数</text>
+              <text class="detail-value">{{ currentSkill?.usageCount }}次</text>
+            </view>
+            <view class="detail-item">
+              <text class="detail-label">创建时间</text>
+              <text class="detail-value">{{ currentSkill?.createdAt }}</text>
+            </view>
+            <view class="detail-item" v-if="currentSkill?.description">
+              <text class="detail-label">描述</text>
+              <text class="detail-value">{{ currentSkill?.description }}</text>
+            </view>
+          </view>
+          <view class="dialog-footer">
+            <view class="btn danger" @click="deleteSkill">
+              <text>删除</text>
+            </view>
+            <view class="btn secondary" @click="showDetailDialog = false">
+              <text>关闭</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </Layout>
 </template>
@@ -132,6 +238,9 @@ const filterType = ref('')
 const skills = ref<Skill[]>([])
 const loading = ref(true)
 const showCreateDialog = ref(false)
+const showEditDialog = ref(false)
+const showDetailDialog = ref(false)
+const currentSkill = ref<Skill | null>(null)
 
 const skillTypes = [{ label: 'API', value: 'api' }, { label: '函数', value: 'function' }]
 const skillCategories = [
@@ -202,6 +311,51 @@ const createSkill = async () => {
     uni.showToast({ title: '创建成功', icon: 'success' })
     showCreateDialog.value = false
     createFormData.value = { name: '', description: '', type: 'api', category: '物流', timeout: 30, apiEndpoint: '' }
+    loadSkills()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const openEditDialog = (skill: Skill) => {
+  currentSkill.value = skill
+  createFormData.value = {
+    name: skill.name,
+    description: skill.description || '',
+    type: skill.type as 'api' | 'function',
+    category: skill.category || '物流',
+    timeout: skill.timeout || 30,
+    apiEndpoint: skill.apiEndpoint || ''
+  }
+  showEditDialog.value = true
+}
+
+const openDetailDialog = (skill: Skill) => {
+  currentSkill.value = skill
+  showDetailDialog.value = true
+}
+
+const updateSkill = async () => {
+  if (!currentSkill.value || !createFormData.value.name.trim()) {
+    uni.showToast({ title: '请输入技能名称', icon: 'none' })
+    return
+  }
+  try {
+    await skillService.update(currentSkill.value.id, createFormData.value as any)
+    uni.showToast({ title: '更新成功', icon: 'success' })
+    showEditDialog.value = false
+    loadSkills()
+  } catch (error) {
+    console.error(error)
+  }
+}
+
+const deleteSkill = async () => {
+  if (!currentSkill.value) return
+  try {
+    await skillService.delete(currentSkill.value.id)
+    uni.showToast({ title: '删除成功', icon: 'success' })
+    showDetailDialog.value = false
     loadSkills()
   } catch (error) {
     console.error(error)
@@ -453,5 +607,38 @@ onMounted(() => {
   gap: 12px;
   padding: 16px 24px;
   border-top: 1px solid #f0f0f0;
+}
+
+.detail-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid #f5f5f5;
+  
+  &:last-child { border-bottom: none; }
+}
+
+.detail-label {
+  font-size: 14px;
+  color: #888;
+}
+
+.detail-value {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  text-align: right;
+  max-width: 60%;
+}
+
+.btn.danger {
+  background: #fff1f0;
+  border: 1px solid #ffa39e;
+  color: #ff4d4f;
+  
+  &:hover {
+    background: #ff4d4f;
+    color: #fff;
+  }
 }
 </style>

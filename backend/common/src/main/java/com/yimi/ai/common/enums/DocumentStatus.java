@@ -1,10 +1,10 @@
 package com.yimi.ai.common.enums;
 
 public enum DocumentStatus {
-    UPLOADING("uploading", "上传中"),
-    PROCESSING("processing", "处理中"),
-    READY("ready", "已就绪"),
-    FAILED("failed", "失败");
+    uploading("uploading", "上传中"),
+    processing("processing", "处理中"),
+    ready("ready", "已就绪"),
+    failed("failed", "失败");
 
     private final String code;
     private final String description;
@@ -28,6 +28,6 @@ public enum DocumentStatus {
                 return status;
             }
         }
-        return UPLOADING;
+        return uploading;
     }
 }

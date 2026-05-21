@@ -24,4 +24,5 @@ public class DocumentResponse {
     private String category;
     private String filePath;
     private String fileUrl;
+    private String content;
 }

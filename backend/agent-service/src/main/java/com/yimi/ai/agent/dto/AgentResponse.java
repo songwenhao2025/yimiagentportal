@@ -27,4 +27,9 @@ public class AgentResponse {
     private String status;
     private Boolean isFavorite;
     private Double rating;
+    private List<String> skills;
+    private List<String> knowledge;
+    private String systemPrompt;
+    private String model;
+    private String visibility;
 }

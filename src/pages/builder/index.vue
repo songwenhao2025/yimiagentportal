@@ -163,15 +163,15 @@
 
               <view class="form-section" v-show="activeTab === 'knowledge'">
                 <view class="form-group">
-                  <view class="form-label">关联知识库</view>
+                  <view class="form-label">关联知识库文档</view>
                   <view class="knowledge-selector">
                     <view class="knowledge-item" v-for="kb in availableKnowledge" :key="kb.id" @click="toggleKnowledge(kb.id)">
                       <view class="kb-checkbox" :class="{ checked: formData.knowledge.includes(kb.id) }">
                         <text v-if="formData.knowledge.includes(kb.id)">✓</text>
                       </view>
                       <view class="kb-info">
-                        <text class="kb-name">{{ kb.name }}</text>
-                        <text class="kb-desc">{{ kb.docCount }} 篇文档</text>
+                        <text class="kb-name">{{ kb.title }}</text>
+                        <text class="kb-desc">{{ kb.category }}</text>
                       </view>
                     </view>
                   </view>
@@ -212,6 +212,7 @@ import { ref, onMounted } from 'vue'
 import Layout from '@/components/Layout.vue'
 import { skillService } from '@/services/skill'
 import { knowledgeService } from '@/services/knowledge'
+import { agentService } from '@/services/agent'
 
 const activeTab = ref('basic')
 
@@ -229,7 +230,7 @@ const formData = ref({
 })
 
 const availableSkills = ref<any[]>([])
-const availableKnowledge = ref<{ id: string; name: string; docCount: number }[]>([])
+const availableKnowledge = ref<{ id: string; title: string; category: string }[]>([])
 
 const loadSkills = async () => {
   try {
@@ -242,22 +243,53 @@ const loadSkills = async () => {
 
 const loadKnowledge = async () => {
   try {
-    const categories = await knowledgeService.getCategories()
-    if (Array.isArray(categories)) {
-      availableKnowledge.value = categories.map(c => ({
-        id: c.id,
-        name: c.name,
-        docCount: c.count || 0
+    const response = await knowledgeService.list({ page: 1, size: 100 })
+    if (response && response.list) {
+      availableKnowledge.value = response.list.map(doc => ({
+        id: doc.id,
+        title: doc.title,
+        category: doc.category || ''
       }))
     }
   } catch (error) {
-    console.error('Failed to load knowledge categories:', error)
+    console.error('Failed to load knowledge documents:', error)
+  }
+}
+
+const agentId = ref('')
+
+const loadAgentData = async (id: string) => {
+  try {
+    const agent = await agentService.get(id)
+    formData.value = {
+      name: agent.name || '',
+      description: agent.description || '',
+      department: agent.department || '',
+      visibility: agent.visibility || 'public',
+      tags: agent.tags || [],
+      model: agent.model || 'qwen-plus',
+      systemPrompt: agent.systemPrompt || '',
+      examples: agent.examples || [],
+      skills: agent.skills || [],
+      knowledge: agent.knowledge || []
+    }
+  } catch (error) {
+    console.error('Failed to load agent data:', error)
   }
 }
 
 onMounted(() => {
   loadSkills()
   loadKnowledge()
+  
+  const pages = getCurrentPages()
+  const currentPage = pages[pages.length - 1]
+  const options = (currentPage as any)?.options || {}
+  
+  if (options.id) {
+    agentId.value = options.id
+    loadAgentData(options.id)
+  }
 })
 
 const getDeptIcon = (dept: string) => {
@@ -320,9 +352,16 @@ const toggleKnowledge = (kbId: string) => {
 
 .page-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
   margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .page-title {
