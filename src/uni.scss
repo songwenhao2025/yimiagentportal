@@ -1,29 +1,37 @@
-$primary-color: #4f46e5;
-$primary-light: #eef2ff;
-$success-color: #10b981;
-$warning-color: #f59e0b;
-$error-color: #ef4444;
-$info-color: #3b82f6;
+$primary-color: #0066ff;
+$primary-light: #00aaff;
+$primary-dark: #003399;
 
-$text-primary: #1f2937;
-$text-secondary: #6b7280;
-$text-muted: #9ca3af;
+$success-color: #00cc88;
+$warning-color: #ffaa00;
+$error-color: #ff4466;
+$info-color: #00ccff;
 
-$bg-primary: #ffffff;
-$bg-secondary: #f5f5f7;
-$bg-dark: #1a1a2e;
+$text-primary: #ffffff;
+$text-secondary: #a0b0c0;
+$text-muted: #607080;
 
-$border-color: #e5e7eb;
-$border-light: #f3f4f6;
+$bg-primary: #0a0f1a;
+$bg-secondary: #111827;
+$bg-tertiary: #1a2332;
+$bg-card: #1e293b;
 
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+$border-color: #2d3a4f;
+$border-light: #1e293b;
+
+$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+$shadow-md: 0 4px 12px rgba(0, 102, 255, 0.15);
+$shadow-lg: 0 10px 30px rgba(0, 102, 255, 0.2);
+
+$glow-sm: 0 0 10px rgba(0, 102, 255, 0.3);
+$glow-md: 0 0 20px rgba(0, 102, 255, 0.4);
+$glow-lg: 0 0 30px rgba(0, 102, 255, 0.5);
 
 $radius-sm: 8rpx;
 $radius-md: 12rpx;
 $radius-lg: 16rpx;
 $radius-xl: 24rpx;
+$radius-full: 9999rpx;
 
 $font-xs: 22rpx;
 $font-sm: 24rpx;

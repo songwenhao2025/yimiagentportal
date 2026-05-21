@@ -42,12 +42,9 @@ const handleBack = () => {
 
 <style lang="scss">
 .navbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 999;
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  position: relative;
+  background: #ffffff;
+  box-shadow: 0 2rpx 12rpx rgba(0, 0, 0, 0.05);
 }
 
 .navbar-content {
@@ -66,7 +63,7 @@ const handleBack = () => {
 
 .back-icon {
   font-size: 40rpx;
-  color: #fff;
+  color: #333;
 }
 
 .navbar-title {
@@ -76,7 +73,7 @@ const handleBack = () => {
   text {
     font-size: 34rpx;
     font-weight: 600;
-    color: #fff;
+    color: #333;
   }
 }
 

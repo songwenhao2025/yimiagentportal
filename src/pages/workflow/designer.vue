@@ -1,218 +1,216 @@
 <template>
-  <Layout>
-    <view class="page">
-      <view class="designer-header">
-        <view class="header-left">
-          <view class="btn back-btn" @click="goBack">
-            <text>← 返回</text>
-          </view>
-          <input class="workflow-name" v-model="workflowName" placeholder="未命名流程" />
-          <view class="status-badge" :class="workflowStatus">
-            <text>{{ getStatusText(workflowStatus) }}</text>
+  <view class="page">
+    <view class="designer-header">
+      <view class="header-left">
+        <view class="btn back-btn" @click="goBack">
+          <text>← 返回</text>
+        </view>
+        <input class="workflow-name" v-model="workflowName" placeholder="未命名流程" />
+        <view class="status-badge" :class="workflowStatus">
+          <text>{{ getStatusText(workflowStatus) }}</text>
+        </view>
+      </view>
+      <view class="header-actions">
+        <view class="btn secondary" @click="saveDraft">
+          <text>保存草稿</text>
+        </view>
+        <view class="btn primary" @click="publishWorkflow">
+          <text>发布</text>
+        </view>
+      </view>
+    </view>
+
+    <view class="designer-body">
+      <!-- Left: Node Palette -->
+      <view class="node-palette">
+        <text class="palette-title">节点类型</text>
+        <view class="palette-section">
+          <text class="section-label">基础节点</text>
+          <view
+            class="palette-item"
+            v-for="item in baseNodes"
+            :key="item.type"
+            @click="addNodeFromPalette(item)"
+          >
+            <text class="node-icon">{{ item.icon }}</text>
+            <text class="node-label">{{ item.label }}</text>
           </view>
         </view>
-        <view class="header-actions">
-          <view class="btn secondary" @click="saveDraft">
-            <text>保存草稿</text>
+        <view class="palette-section">
+          <text class="section-label">AI节点</text>
+          <view
+            class="palette-item"
+            v-for="item in aiNodes"
+            :key="item.type"
+            @click="addNodeFromPalette(item)"
+          >
+            <text class="node-icon">{{ item.icon }}</text>
+            <text class="node-label">{{ item.label }}</text>
           </view>
-          <view class="btn primary" @click="publishWorkflow">
-            <text>发布</text>
+        </view>
+        <view class="palette-section">
+          <text class="section-label">逻辑节点</text>
+          <view
+            class="palette-item"
+            v-for="item in logicNodes"
+            :key="item.type"
+            @click="addNodeFromPalette(item)"
+          >
+            <text class="node-icon">{{ item.icon }}</text>
+            <text class="node-label">{{ item.label }}</text>
           </view>
         </view>
       </view>
 
-      <view class="designer-body">
-        <!-- Left: Node Palette -->
-        <view class="node-palette">
-          <view class="palette-title">节点类型</view>
-          <view class="palette-section">
-            <text class="section-label">基础节点</text>
-            <view
-              class="palette-item"
-              v-for="item in baseNodes"
-              :key="item.type"
-              draggable="true"
-              @touchstart="startDrag(item)"
-            >
-              <text class="node-icon">{{ item.icon }}</text>
-              <text class="node-label">{{ item.label }}</text>
-            </view>
-          </view>
-          <view class="palette-section">
-            <text class="section-label">AI节点</text>
-            <view
-              class="palette-item"
-              v-for="item in aiNodes"
-              :key="item.type"
-              @touchstart="startDrag(item)"
-            >
-              <text class="node-icon">{{ item.icon }}</text>
-              <text class="node-label">{{ item.label }}</text>
-            </view>
-          </view>
-          <view class="palette-section">
-            <text class="section-label">逻辑节点</text>
-            <view
-              class="palette-item"
-              v-for="item in logicNodes"
-              :key="item.type"
-              @touchstart="startDrag(item)"
-            >
-              <text class="node-icon">{{ item.icon }}</text>
-              <text class="node-label">{{ item.label }}</text>
-            </view>
-          </view>
+      <!-- Center: Canvas -->
+      <view class="canvas-area" ref="canvasArea" @click="deselectAll">
+        <view class="canvas-toolbar">
+          <view class="toolbar-btn" @click.stop="zoomIn"><text>+</text></view>
+          <text class="zoom-level">{{ Math.round(zoom * 100) }}%</text>
+          <view class="toolbar-btn" @click.stop="zoomOut"><text>-</text></view>
+          <view class="toolbar-btn" @click.stop="resetZoom"><text>⟲</text></view>
+          <view class="toolbar-divider"></view>
+          <view class="toolbar-btn" @click.stop="showExecutions"><text>⏱</text></view>
         </view>
 
-        <!-- Center: Canvas -->
-        <view class="canvas-area" @click="deselectAll">
-          <view class="canvas-toolbar">
-            <view class="toolbar-btn" @click="zoomIn"><text>+</text></view>
-            <text class="zoom-level">{{ Math.round(zoom * 100) }}%</text>
-            <view class="toolbar-btn" @click="zoomOut"><text>-</text></view>
-            <view class="toolbar-btn" @click="resetZoom"><text>⟲</text></view>
-          </view>
+        <view
+          class="canvas"
+          :style="{ transform: `scale(${zoom}) translate(${panX}px, ${panY}px)`, transformOrigin: '0 0', width: canvasWidth + 'px', height: canvasHeight + 'px' }"
+          @mousedown="onCanvasMouseDown"
+          @mousemove="onCanvasMouseMove"
+          @mouseup="onCanvasMouseUp"
+        >
+          <!-- SVG lines for edges -->
+          <svg class="edges-layer" :width="canvasWidth" :height="canvasHeight">
+            <defs>
+              <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
+              </marker>
+              <marker id="arrowhead-active" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="#4f46e5" />
+              </marker>
+            </defs>
+            <path
+              v-for="edge in edges"
+              :key="edge.id"
+              :d="getEdgePath(edge)"
+              fill="none"
+              stroke="#94a3b8"
+              stroke-width="2"
+              marker-end="url(#arrowhead)"
+              @click.stop="deleteEdge(edge)"
+              style="cursor: pointer;"
+            />
+            <!-- Drawing new edge -->
+            <path
+              v-if="drawingEdge"
+              :d="getDrawingEdgePath()"
+              fill="none"
+              stroke="#4f46e5"
+              stroke-width="2"
+              stroke-dasharray="5,5"
+              marker-end="url(#arrowhead-active)"
+            />
+          </svg>
 
+          <!-- Nodes -->
           <view
-            class="canvas"
-            :style="{ transform: `scale(${zoom})`, transformOrigin: '0 0' }"
-            @touchmove.prevent="onCanvasTouchMove"
-            @touchend="onCanvasTouchEnd"
+            class="canvas-node"
+            v-for="node in nodes"
+            :key="node.id"
+            :class="{ selected: selectedNode?.id === node.id, [node.type]: true }"
+            :style="{ left: node.x + 'px', top: node.y + 'px', width: nodeWidth + 'px' }"
+            @click.stop="selectNode(node)"
+            @mousedown.stop="startNodeDrag($event, node)"
           >
-            <!-- SVG lines for edges -->
-            <svg class="edges-layer" :width="canvasWidth" :height="canvasHeight">
-              <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
-                  <polygon points="0 0, 10 3.5, 0 7" fill="#94a3b8" />
-                </marker>
-              </defs>
-              <path
-                v-for="edge in edges"
-                :key="edge.id"
-                :d="getEdgePath(edge)"
-                fill="none"
-                stroke="#94a3b8"
-                stroke-width="2"
-                marker-end="url(#arrowhead)"
-              />
-              <!-- Drawing new edge -->
-              <path
-                v-if="drawingEdge"
-                :d="drawingEdgePath"
-                fill="none"
-                stroke="#4f46e5"
-                stroke-width="2"
-                stroke-dasharray="5,5"
-              />
-            </svg>
-
-            <!-- Nodes -->
-            <view
-              class="canvas-node"
-              v-for="node in nodes"
-              :key="node.id"
-              :class="{ selected: selectedNode?.id === node.id }"
-              :style="{ left: node.x + 'px', top: node.y + 'px' }"
-              @click.stop="selectNode(node)"
-              @touchstart.stop="startNodeDrag($event, node)"
-            >
-              <view class="node-header" :class="node.type">
-                <text class="node-type-icon">{{ getNodeTypeIcon(node.type) }}</text>
-                <text class="node-title">{{ node.name }}</text>
-              </view>
-              <view class="node-body">
-                <text class="node-desc">{{ getNodeDesc(node) }}</text>
-              </view>
-              <!-- Connection handles -->
-              <view class="handle input-handle" :data-node-id="node.id"></view>
-              <view class="handle output-handle" :data-node-id="node.id" @click.stop="startEdge($event, node)"></view>
-              <!-- Delete button -->
-              <view class="node-delete" @click.stop="deleteNode(node)" v-if="selectedNode?.id === node.id">
-                <text>×</text>
-              </view>
+            <view class="node-header" :class="node.type">
+              <text class="node-type-icon">{{ getNodeTypeIcon(node.type) }}</text>
+              <text class="node-title">{{ node.name }}</text>
+            </view>
+            <view class="node-body">
+              <text class="node-desc">{{ getNodeDesc(node) }}</text>
+            </view>
+            <!-- Connection handles -->
+            <view class="handle input-handle" :data-node-id="node.id" @click.stop="completeEdge(node)"></view>
+            <view class="handle output-handle" :data-node-id="node.id" @click.stop="startEdge(node)"></view>
+            <!-- Delete button -->
+            <view class="node-delete" @click.stop="deleteNode(node)" v-if="selectedNode?.id === node.id">
+              <text>×</text>
             </view>
           </view>
         </view>
+      </view>
 
-        <!-- Right: Config Panel -->
-        <view class="config-panel" v-if="selectedNode">
-          <view class="panel-header">
-            <text class="panel-title">节点配置</text>
-            <text class="panel-close" @click="deselectAll">×</text>
+      <!-- Right: Config Panel -->
+      <view class="config-panel" v-if="selectedNode">
+        <view class="panel-header">
+          <text class="panel-title">节点配置</text>
+          <text class="panel-close" @click="deselectAll">×</text>
+        </view>
+        <view class="panel-body">
+          <view class="config-section">
+            <text class="config-label">节点名称</text>
+            <input class="config-input" v-model="selectedNode.name" placeholder="节点名称" />
           </view>
-          <view class="panel-body">
-            <view class="config-section">
-              <text class="config-label">节点名称</text>
-              <input class="config-input" v-model="selectedNode.name" placeholder="节点名称" />
-            </view>
 
-            <!-- Agent node config -->
-            <view class="config-section" v-if="selectedNode.type === 'agent'">
-              <text class="config-label">关联Agent</text>
-              <select class="config-select" v-model="selectedNode.agentId">
-                <option value="">请选择Agent</option>
-                <option v-for="agent in availableAgents" :key="agent.id" :value="agent.id">
-                  {{ agent.name }}
-                </option>
-              </select>
-            </view>
+          <!-- Agent node config -->
+          <view class="config-section" v-if="selectedNode.type === 'agent'">
+            <text class="config-label">关联Agent</text>
+            <picker class="config-picker" mode="selector" :range="availableAgents" range-key="name" :value="selectedAgentIndex" @change="onAgentChange">
+              <view class="picker-value">{{ selectedAgentIndex >= 0 ? availableAgents[selectedAgentIndex].name : '请选择Agent' }}</view>
+            </picker>
+          </view>
 
-            <!-- Skill node config -->
-            <view class="config-section" v-if="selectedNode.type === 'skill'">
-              <text class="config-label">关联技能</text>
-              <select class="config-select" v-model="selectedNode.skillId">
-                <option value="">请选择技能</option>
-                <option v-for="skill in availableSkills" :key="skill.id" :value="skill.id">
-                  {{ skill.name }}
-                </option>
-              </select>
-            </view>
+          <!-- Skill node config -->
+          <view class="config-section" v-if="selectedNode.type === 'skill'">
+            <text class="config-label">关联技能</text>
+            <picker class="config-picker" mode="selector" :range="availableSkills" range-key="name" :value="selectedSkillIndex" @change="onSkillChange">
+              <view class="picker-value">{{ selectedSkillIndex >= 0 ? availableSkills[selectedSkillIndex].name : '请选择技能' }}</view>
+            </picker>
+          </view>
 
-            <!-- Condition node config -->
-            <view class="config-section" v-if="selectedNode.type === 'condition'">
-              <text class="config-label">条件表达式</text>
-              <textarea class="config-textarea" v-model="conditionExpr" placeholder="如: {{ input.status }} == 'error'" rows="3"></textarea>
-              <text class="config-hint">使用 {{ "{{" }} }} 引用上游节点输出变量</text>
-            </view>
+          <!-- Condition node config -->
+          <view class="config-section" v-if="selectedNode.type === 'condition'">
+            <text class="config-label">条件表达式</text>
+            <textarea class="config-textarea" v-model="conditionExpr" placeholder="如: {{ input.status }} == 'error'" rows="3"></textarea>
+            <text class="config-hint">使用 &#123;&#123; 变量名 &#125;&#125; 引用上游输出</text>
+          </view>
 
-            <!-- Loop node config -->
-            <view class="config-section" v-if="selectedNode.type === 'loop'">
-              <text class="config-label">循环类型</text>
-              <select class="config-select" v-model="loopType">
-                <option value="count">固定次数</option>
-                <option value="list">遍历列表</option>
-                <option value="while">条件循环</option>
-              </select>
-              <view class="config-section" v-if="loopType === 'count'">
-                <text class="config-label">循环次数</text>
-                <input class="config-input" type="number" v-model="loopCount" placeholder="3" />
-              </view>
+          <!-- Loop node config -->
+          <view class="config-section" v-if="selectedNode.type === 'loop'">
+            <text class="config-label">循环类型</text>
+            <picker class="config-picker" mode="selector" :range="loopTypeOptions" range-key="label" :value="loopTypeIndex" @change="onLoopTypeChange">
+              <view class="picker-value">{{ loopTypeOptions[loopTypeIndex].label }}</view>
+            </picker>
+            <view class="config-section" v-if="loopType === 'count'">
+              <text class="config-label">循环次数</text>
+              <input class="config-input" type="number" v-model.number="loopCount" placeholder="3" />
             </view>
+          </view>
 
-            <!-- Approval node config -->
-            <view class="config-section" v-if="selectedNode.type === 'approval'">
-              <text class="config-label">审批人</text>
-              <input class="config-input" v-model="approver" placeholder="审批人ID或姓名" />
-              <text class="config-label" style="margin-top: 12px;">超时时间(分钟)</text>
-              <input class="config-input" type="number" v-model="approvalTimeout" placeholder="60" />
-            </view>
+          <!-- Approval node config -->
+          <view class="config-section" v-if="selectedNode.type === 'approval'">
+            <text class="config-label">审批人</text>
+            <input class="config-input" v-model="approver" placeholder="审批人ID或姓名" />
+            <text class="config-label" style="margin-top: 12px; display: block;">超时时间(分钟)</text>
+            <input class="config-input" type="number" v-model.number="approvalTimeout" placeholder="60" />
+          </view>
 
-            <!-- Variable mapping -->
-            <view class="config-section">
-              <text class="config-label">变量映射</text>
-              <textarea class="config-textarea" v-model="selectedNode.config" placeholder='{"input": "{{ upstream.output }}"}' rows="3"></textarea>
-              <text class="config-hint">JSON格式，定义输入输出变量映射关系</text>
-            </view>
+          <!-- Variable mapping -->
+          <view class="config-section">
+            <text class="config-label">变量映射 (JSON)</text>
+            <textarea class="config-textarea" v-model="selectedNode.config" placeholder='{"input": "{{ upstream.output }}"}' rows="3"></textarea>
+            <text class="config-hint">JSON格式，定义输入输出变量映射关系</text>
           </view>
         </view>
       </view>
     </view>
-  </Layout>
+  </view>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import Layout from '@/components/Layout.vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import { workflowService } from '@/services/workflow'
 import { agentService } from '@/services/agent'
 import { skillService } from '@/services/skill'
@@ -224,24 +222,26 @@ const nodes = ref<any[]>([])
 const edges = ref<any[]>([])
 const selectedNode = ref<any>(null)
 const zoom = ref(1)
-const canvasWidth = ref(2000)
-const canvasHeight = ref(1500)
+const panX = ref(0)
+const panY = ref(0)
+const canvasWidth = 3000
+const canvasHeight = 2000
+const nodeWidth = 160
 const availableAgents = ref<any[]>([])
 const availableSkills = ref<any[]>([])
 
-// Drag state
-const draggingNode = ref<any>(null)
-const dragOffset = ref({ x: 0, y: 0 })
-const drawingEdge = ref<any>(null)
-
-// Condition config
+const selectedAgentIndex = ref(-1)
+const selectedSkillIndex = ref(-1)
+const selectedConditionIndex = ref(-1)
 const conditionExpr = ref('')
 const loopType = ref('count')
+const loopTypeOptions = [{ label: '固定次数' }, { label: '遍历列表' }, { label: '条件循环' }]
+const loopTypeIndex = ref(0)
 const loopCount = ref(3)
 const approver = ref('')
 const approvalTimeout = ref(60)
 
-const nodeTemplates = {
+const nodeTemplates: Record<string, { icon: string; label: string }> = {
   start: { icon: '▶', label: '开始' },
   end: { icon: '⏹', label: '结束' },
   agent: { icon: '🤖', label: 'Agent节点' },
@@ -267,9 +267,14 @@ const logicNodes = [
   { type: 'approval', icon: '✅', label: '人工审批' }
 ]
 
-const getNodeTypeIcon = (type: string) => {
-  return nodeTemplates[type as keyof typeof nodeTemplates]?.icon || '📦'
-}
+// Mouse/touch interaction
+const draggingNode = ref<any>(null)
+const dragOffset = ref({ x: 0, y: 0 })
+const drawingEdge = ref<any>(null)
+const isPanning = ref(false)
+const panStart = ref({ x: 0, y: 0 })
+
+const getNodeTypeIcon = (type: string) => nodeTemplates[type]?.icon || '📦'
 
 const getNodeDesc = (node: any) => {
   switch (node.type) {
@@ -289,17 +294,15 @@ const getStatusText = (status: string) => {
   return map[status] || status
 }
 
-const goBack = () => {
-  uni.navigateBack()
-}
+const goBack = () => { uni.navigateBack() }
 
-const addNode = (template: any, x: number, y: number) => {
+const addNodeFromPalette = (item: any) => {
   const node = {
     id: 'node_' + Date.now(),
-    type: template.type,
-    name: template.label,
-    x,
-    y,
+    type: item.type,
+    name: item.label,
+    x: 400 + Math.random() * 200,
+    y: 200 + Math.random() * 200,
     agentId: '',
     skillId: '',
     config: ''
@@ -310,25 +313,33 @@ const addNode = (template: any, x: number, y: number) => {
 
 const selectNode = (node: any) => {
   selectedNode.value = node
-  // Load config
   if (node.config) {
     try {
       const cfg = JSON.parse(node.config)
       if (cfg.condition) conditionExpr.value = cfg.condition
-      if (cfg.loopType) loopType.value = cfg.loopType
+      if (cfg.loopType) {
+        const idx = loopTypeOptions.findIndex((o: any) => o.label === cfg.loopType)
+        if (idx >= 0) { loopTypeIndex.value = idx; loopType.value = cfg.loopType }
+      }
       if (cfg.loopCount) loopCount.value = cfg.loopCount
       if (cfg.approver) approver.value = cfg.approver
       if (cfg.approvalTimeout) approvalTimeout.value = cfg.approvalTimeout
     } catch (e) { /* ignore */ }
   }
+  // Set picker indices
+  if (node.type === 'agent' && node.agentId) {
+    selectedAgentIndex.value = availableAgents.value.findIndex((a: any) => a.id === node.agentId)
+  }
+  if (node.type === 'skill' && node.skillId) {
+    selectedSkillIndex.value = availableSkills.value.findIndex((s: any) => s.id === node.skillId)
+  }
 }
 
 const deselectAll = () => {
-  // Save config before deselecting
   if (selectedNode.value) {
     const cfg: any = {}
     if (conditionExpr.value) cfg.condition = conditionExpr.value
-    if (loopType.value !== 'count') cfg.loopType = loopType.value
+    if (loopType.value !== 'count') cfg.loopType = loopTypeOptions[loopTypeIndex.value]?.label
     if (loopCount.value !== 3) cfg.loopCount = loopCount.value
     if (approver.value) cfg.approver = approver.value
     if (approvalTimeout.value !== 60) cfg.approvalTimeout = approvalTimeout.value
@@ -343,60 +354,126 @@ const deleteNode = (node: any) => {
   selectedNode.value = null
 }
 
-const startDrag = (item: any) => {
-  // For desktop: use drag events; for mobile: just add at center
-  const cx = Math.floor(canvasWidth.value / 2) - 80
-  const cy = Math.floor(canvasHeight.value / 2) - 40
-  addNode(item, cx + Math.random() * 100 - 50, cy + Math.random() * 100 - 50)
+const deleteEdge = (edge: any) => {
+  edges.value = edges.value.filter(e => e.id !== edge.id)
 }
 
-const startNodeDrag = (event: any, node: any) => {
-  const touch = event.touches?.[0]
-  if (!touch) return
-  draggingNode.value = node
-  dragOffset.value = { x: touch.clientX - node.x, y: touch.clientY - node.y }
+const startEdge = (sourceNode: any) => {
+  drawingEdge.value = { source: sourceNode.id, mouseX: 0, mouseY: 0 }
 }
 
-const onCanvasTouchMove = (event: any) => {
-  if (!draggingNode.value || !event.touches?.[0]) return
-  const touch = event.touches[0]
-  draggingNode.value.x = touch.clientX - dragOffset.value.x
-  draggingNode.value.y = touch.clientY - dragOffset.value.y
-}
-
-const onCanvasTouchEnd = () => {
-  draggingNode.value = null
-  drawingEdge.value = null
-}
-
-const startEdge = (event: any, sourceNode: any) => {
-  drawingEdge.value = {
-    source: sourceNode.id,
-    fromX: sourceNode.x + 160,
-    fromY: sourceNode.y + 30
+const completeEdge = (targetNode: any) => {
+  if (!drawingEdge.value || drawingEdge.value.source === targetNode.id) return
+  // Check if edge already exists
+  const exists = edges.value.some(e =>
+    e.source === drawingEdge.value.source && e.target === targetNode.id
+  )
+  if (!exists) {
+    edges.value.push({
+      id: 'edge_' + Date.now(),
+      source: drawingEdge.value.source,
+      target: targetNode.id
+    })
   }
+  drawingEdge.value = null
 }
 
 const getEdgePath = (edge: any) => {
   const source = nodes.value.find(n => n.id === edge.source)
   const target = nodes.value.find(n => n.id === edge.target)
   if (!source || !target) return ''
-  const x1 = source.x + 160
+  const x1 = source.x + nodeWidth
   const y1 = source.y + 30
   const x2 = target.x
   const y2 = target.y + 30
-  const cp = Math.abs(x2 - x1) * 0.5
+  const cp = Math.max(Math.abs(x2 - x1) * 0.5, 50)
   return `M ${x1} ${y1} C ${x1 + cp} ${y1}, ${x2 - cp} ${y2}, ${x2} ${y2}`
 }
 
-const drawingEdgePath = computed(() => {
+const getDrawingEdgePath = () => {
   if (!drawingEdge.value) return ''
-  return `M ${drawingEdge.value.fromX} ${drawingEdge.value.fromY} L ${drawingEdge.value.fromX + 100} ${drawingEdge.value.fromY}`
-})
+  const source = nodes.value.find(n => n.id === drawingEdge.value.source)
+  if (!source) return ''
+  const x1 = source.x + nodeWidth
+  const y1 = source.y + 30
+  return `M ${x1} ${y1} L ${drawingEdge.value.mouseX} ${drawingEdge.value.mouseY}`
+}
 
 const zoomIn = () => { zoom.value = Math.min(zoom.value + 0.1, 2) }
 const zoomOut = () => { zoom.value = Math.max(zoom.value - 0.1, 0.3) }
-const resetZoom = () => { zoom.value = 1 }
+const resetZoom = () => { zoom.value = 1; panX.value = 0; panY.value = 0 }
+
+const showExecutions = () => {
+  if (workflowId.value) {
+    uni.navigateTo({ url: `/pages/workflow/execution?id=${workflowId.value}` })
+  } else {
+    uni.showToast({ title: '请先保存流程', icon: 'none' })
+  }
+}
+
+// Mouse event handlers for canvas
+const onCanvasMouseDown = (event: MouseEvent) => {
+  // Check if clicking on empty canvas (not on a node)
+  if (drawingEdge.value) {
+    drawingEdge.value = null
+    return
+  }
+  isPanning.value = true
+  panStart.value = { x: event.clientX - panX.value / zoom.value, y: event.clientY - panY.value / zoom.value }
+}
+
+const onCanvasMouseMove = (event: MouseEvent) => {
+  if (isPanning.value) {
+    panX.value = (event.clientX - panStart.value.x) * zoom.value
+    panY.value = (event.clientY - panStart.value.y) * zoom.value
+  }
+  if (draggingNode.value) {
+    const rect = (event.currentTarget as HTMLElement).closest('.canvas-area')?.getBoundingClientRect()
+    if (rect) {
+      draggingNode.value.x = event.clientX - dragOffset.value.x
+      draggingNode.value.y = event.clientY - dragOffset.value.y
+    }
+  }
+  if (drawingEdge.value) {
+    const canvasEl = document.querySelector('.canvas') as HTMLElement
+    if (canvasEl) {
+      const rect = canvasEl.getBoundingClientRect()
+      drawingEdge.value.mouseX = (event.clientX - rect.left) / zoom.value
+      drawingEdge.value.mouseY = (event.clientY - rect.top) / zoom.value
+    }
+  }
+}
+
+const onCanvasMouseUp = () => {
+  isPanning.value = false
+  draggingNode.value = null
+}
+
+// Node drag handlers
+const startNodeDrag = (event: MouseEvent, node: any) => {
+  draggingNode.value = node
+  dragOffset.value = { x: event.clientX - node.x, y: event.clientY - node.y }
+}
+
+// Picker change handlers
+const onAgentChange = (e: any) => {
+  selectedAgentIndex.value = e.detail.value
+  if (selectedNode.value) {
+    selectedNode.value.agentId = availableAgents.value[e.detail.value]?.id || ''
+  }
+}
+
+const onSkillChange = (e: any) => {
+  selectedSkillIndex.value = e.detail.value
+  if (selectedNode.value) {
+    selectedNode.value.skillId = availableSkills.value[e.detail.value]?.id || ''
+  }
+}
+
+const onLoopTypeChange = (e: any) => {
+  loopTypeIndex.value = e.detail.value
+  loopType.value = loopTypeOptions[e.detail.value]?.label || 'count'
+}
 
 const saveDraft = async () => {
   if (!workflowName.value.trim()) {
@@ -411,16 +488,18 @@ const saveDraft = async () => {
       triggerType: 'api',
       nodes: nodes.value.map(n => ({
         id: n.id, type: n.type, name: n.name,
-        config: n.config, x: n.x, y: n.y,
-        agentId: n.agentId, skillId: n.skillId
+        config: n.config || '', x: n.x, y: n.y,
+        agentId: n.agentId || '', skillId: n.skillId || ''
       })),
       edges: edges.value
     }
+    let result
     if (workflowId.value) {
-      await workflowService.update(workflowId.value, data)
+      result = await workflowService.update(workflowId.value, data as any)
     } else {
-      const result = await workflowService.create(data as any)
+      result = await workflowService.create(data as any)
       workflowId.value = result.id
+      workflowStatus.value = result.status || 'draft'
     }
     uni.showToast({ title: '保存成功', icon: 'success' })
   } catch (error) {
@@ -444,23 +523,24 @@ const publishWorkflow = async () => {
   }
 }
 
-const loadWorkflow = async () => {
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1] as any
-  const id = currentPage.options?.id
+const loadWorkflow = async (id: string) => {
   if (id) {
     workflowId.value = id
     try {
       const wf = await workflowService.get(id)
       workflowName.value = wf.name
-      workflowStatus.value = wf.status
-      if (wf.nodes) {
+      workflowStatus.value = wf.status || 'draft'
+      if (wf.nodes && wf.nodes.length > 0) {
         nodes.value = wf.nodes.map((n: any) => ({
           ...n, x: n.x || 100, y: n.y || 100
         }))
       }
-      if (wf.edges) {
-        edges.value = wf.edges
+      if (wf.edges && wf.edges.length > 0) {
+        edges.value = wf.edges.map((e: any) => ({
+          id: e.id || ('edge_' + Date.now()),
+          source: e.source || e.sourceNode || '',
+          target: e.target || e.targetNode || ''
+        }))
       }
     } catch (error) {
       console.error('Failed to load workflow:', error)
@@ -482,10 +562,19 @@ const loadSkills = async () => {
   } catch (e) { /* ignore */ }
 }
 
+onLoad((options: any) => {
+  if (options?.id) {
+    loadWorkflow(options.id)
+  }
+})
+
 onMounted(() => {
-  loadWorkflow()
   loadAgents()
   loadSkills()
+})
+
+onBeforeUnmount(() => {
+  // Cleanup
 })
 </script>
 
@@ -504,6 +593,7 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .header-left {
@@ -556,6 +646,7 @@ onMounted(() => {
   border-radius: 8px;
   font-size: 14px;
   cursor: pointer;
+  user-select: none;
 
   &.primary {
     background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
@@ -581,6 +672,7 @@ onMounted(() => {
   border-right: 1px solid #e8e8e8;
   padding: 16px;
   overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .palette-title {
@@ -588,6 +680,7 @@ onMounted(() => {
   font-weight: 600;
   color: #1f2937;
   margin-bottom: 16px;
+  display: block;
 }
 
 .palette-section {
@@ -609,12 +702,11 @@ onMounted(() => {
   background: #f9fafb;
   border-radius: 8px;
   margin-bottom: 6px;
-  cursor: grab;
+  cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
     background: #eef2ff;
-    border-color: #4f46e5;
   }
 
   .node-icon { font-size: 18px; }
@@ -631,9 +723,11 @@ onMounted(() => {
 }
 
 .canvas-toolbar {
-  position: absolute;
+  position: sticky;
   top: 12px;
   right: 12px;
+  float: right;
+  margin-right: 16px;
   display: flex;
   align-items: center;
   gap: 8px;
@@ -653,10 +747,17 @@ onMounted(() => {
   border-radius: 6px;
   cursor: pointer;
   background: #f3f4f6;
+  user-select: none;
 
   text { font-size: 16px; color: #6b7280; }
 
   &:hover { background: #e5e7eb; }
+}
+
+.toolbar-divider {
+  width: 1px;
+  height: 20px;
+  background: #e5e7eb;
 }
 
 .zoom-level {
@@ -668,8 +769,6 @@ onMounted(() => {
 
 .canvas {
   position: relative;
-  min-width: 100%;
-  min-height: 100%;
 }
 
 .edges-layer {
@@ -677,11 +776,14 @@ onMounted(() => {
   top: 0;
   left: 0;
   pointer-events: none;
+
+  path {
+    pointer-events: stroke;
+  }
 }
 
 .canvas-node {
   position: absolute;
-  width: 160px;
   background: #fff;
   border-radius: 10px;
   box-shadow: 0 2px 8px rgba(0,0,0,0.08);
@@ -766,6 +868,7 @@ onMounted(() => {
   border-left: 1px solid #e8e8e8;
   display: flex;
   flex-direction: column;
+  flex-shrink: 0;
 }
 
 .panel-header {
@@ -806,7 +909,7 @@ onMounted(() => {
   display: block;
 }
 
-.config-input, .config-select, .config-textarea {
+.config-input, .config-picker, .config-textarea {
   width: 100%;
   padding: 8px 12px;
   border: 1px solid #e5e7eb;
@@ -818,6 +921,15 @@ onMounted(() => {
     outline: none;
     border-color: #4f46e5;
   }
+}
+
+.config-picker {
+  cursor: pointer;
+}
+
+.picker-value {
+  color: #1f2937;
+  min-height: 18px;
 }
 
 .config-textarea {

@@ -121,6 +121,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { onLoad } from '@dcloudio/uni-app'
 import Layout from '@/components/Layout.vue'
 import { agentService } from '@/services/agent'
 import type { Agent } from '@/data/agents'
@@ -173,22 +174,22 @@ const handleUse = () => {
   uni.redirectTo({ url: `/pages/agent/chat?id=${agent.value.id}` })
 }
 
-onMounted(async () => {
+onMounted(() => {
   uni.getSystemInfo({
     success: (res) => {
       contentHeight.value = res.windowHeight - 300
     }
   })
+})
 
-  const pages = getCurrentPages()
-  const currentPage = pages[pages.length - 1]
-  const options = (currentPage as unknown as { options?: { id?: string } }).options
+onLoad(async (options: any) => {
   if (options?.id) {
     try {
       const agentData = await agentService.get(options.id)
       agent.value = agentData as Agent
     } catch (e) {
       console.error('Failed to load agent:', e)
+      uni.showToast({ title: '加载Agent失败', icon: 'none' })
     }
   }
 })

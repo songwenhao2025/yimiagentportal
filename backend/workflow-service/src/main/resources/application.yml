@@ -22,3 +22,12 @@ logging:
   level:
     com.yimi.ai: DEBUG
     org.springframework: INFO
+
+# Internal service URLs
+agent:
+  service:
+    url: http://localhost:8082
+
+skill:
+  service:
+    url: http://localhost:8083

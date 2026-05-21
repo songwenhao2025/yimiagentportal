@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -77,6 +78,27 @@ public class AdminController {
             new RoleResponse("operator", "操作员", "可以执行特定操作")
         );
         return ResponseEntity.ok(ApiResponse.success(roles));
+    }
+
+    @GetMapping("/dashboard/trends")
+    public ResponseEntity<ApiResponse<List<Integer>>> getCallTrends(
+            @RequestParam(defaultValue = "7") int days) {
+        List<Integer> trends = adminService.getCallTrends(days);
+        return ResponseEntity.ok(ApiResponse.success(trends));
+    }
+
+    @GetMapping("/dashboard/agent-ranking")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getAgentRanking(
+            @RequestParam(defaultValue = "5") int topN) {
+        List<Map<String, Object>> ranking = adminService.getAgentRanking(topN);
+        return ResponseEntity.ok(ApiResponse.success(ranking));
+    }
+
+    @GetMapping("/dashboard/skill-ranking")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getSkillRanking(
+            @RequestParam(defaultValue = "5") int topN) {
+        List<Map<String, Object>> ranking = adminService.getSkillRanking(topN);
+        return ResponseEntity.ok(ApiResponse.success(ranking));
     }
 
     @lombok.Data

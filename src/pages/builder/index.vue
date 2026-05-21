@@ -19,29 +19,29 @@
         <view class="builder-layout">
           <view class="builder-main">
             <view class="builder-tabs">
-              <view 
-                class="tab-item" 
+              <view
+                class="tab-item"
                 :class="{ active: activeTab === 'basic' }"
                 @click="activeTab = 'basic'"
               >
                 <text>基础配置</text>
               </view>
-              <view 
-                class="tab-item" 
+              <view
+                class="tab-item"
                 :class="{ active: activeTab === 'prompt' }"
                 @click="activeTab = 'prompt'"
               >
                 <text>提示词工坊</text>
               </view>
-              <view 
-                class="tab-item" 
+              <view
+                class="tab-item"
                 :class="{ active: activeTab === 'skills' }"
                 @click="activeTab = 'skills'"
               >
                 <text>技能绑定</text>
               </view>
-              <view 
-                class="tab-item" 
+              <view
+                class="tab-item"
                 :class="{ active: activeTab === 'knowledge' }"
                 @click="activeTab = 'knowledge'"
               >
@@ -52,18 +52,18 @@
             <view class="builder-content">
               <view class="form-section" v-show="activeTab === 'basic'">
                 <view class="form-group">
-                  <label class="form-label">Agent名称 <span class="required">*</span></label>
+                  <view class="form-label">Agent名称 <span class="required">*</span></view>
                   <input class="form-input" type="text" v-model="formData.name" placeholder="请输入Agent名称" />
                 </view>
-                
+
                 <view class="form-group">
-                  <label class="form-label">Agent描述 <span class="required">*</span></label>
+                  <view class="form-label">Agent描述 <span class="required">*</span></view>
                   <textarea class="form-textarea" v-model="formData.description" placeholder="请详细描述Agent的功能和使用场景" rows="4"></textarea>
                 </view>
-                
+
                 <view class="form-row">
                   <view class="form-group">
-                    <label class="form-label">所属部门</label>
+                    <view class="form-label">所属部门</view>
                     <select class="form-select" v-model="formData.department">
                       <option value="">请选择</option>
                       <option value="operation">运营部</option>
@@ -72,9 +72,9 @@
                       <option value="finance">财务部</option>
                     </select>
                   </view>
-                  
+
                   <view class="form-group">
-                    <label class="form-label">可见范围</label>
+                    <view class="form-label">可见范围</view>
                     <select class="form-select" v-model="formData.visibility">
                       <option value="public">全公司</option>
                       <option value="department">本部门</option>
@@ -82,9 +82,9 @@
                     </select>
                   </view>
                 </view>
-                
+
                 <view class="form-group">
-                  <label class="form-label">标签</label>
+                  <view class="form-label">标签</view>
                   <view class="tag-input">
                     <view class="tag-item" v-for="tag in formData.tags" :key="tag">
                       <text>{{ tag }}</text>
@@ -97,22 +97,22 @@
 
               <view class="form-section" v-show="activeTab === 'prompt'">
                 <view class="form-group">
-                  <label class="form-label">选择模型</label>
+                  <view class="form-label">选择模型</view>
                   <select class="form-select" v-model="formData.model">
                     <option value="qwen-max">qwen-max (旗舰版)</option>
                     <option value="qwen-plus">qwen-plus (增强版)</option>
                     <option value="qwen-turbo">qwen-turbo (快速版)</option>
                   </select>
                 </view>
-                
+
                 <view class="form-group">
-                  <label class="form-label">系统指令 (System Prompt)</label>
+                  <view class="form-label">系统指令 (System Prompt)</view>
                   <textarea class="form-textarea code" v-model="formData.systemPrompt" placeholder="定义Agent的角色、行为规则和约束..." rows="8"></textarea>
                   <text class="form-hint">支持变量引用：{{"{{"}}user_name}}、{{"{{"}}department}} 等</text>
                 </view>
-                
+
                 <view class="form-group">
-                  <label class="form-label">Few-shot 示例</label>
+                  <view class="form-label">Few-shot 示例</view>
                   <view class="example-list">
                     <view class="example-item" v-for="(example, idx) in formData.examples" :key="idx">
                       <view class="example-header">
@@ -133,9 +133,9 @@
                 <view class="skills-market">
                   <text class="section-label">从技能市场选择</text>
                   <view class="skills-grid">
-                    <view 
-                      class="skill-card" 
-                      v-for="skill in availableSkills" 
+                    <view
+                      class="skill-card"
+                      v-for="skill in availableSkills"
                       :key="skill.id"
                       :class="{ selected: formData.skills.includes(skill.id) }"
                       @click="toggleSkill(skill.id)"
@@ -149,7 +149,7 @@
                     </view>
                   </view>
                 </view>
-                
+
                 <view class="selected-skills" v-if="formData.skills.length > 0">
                   <text class="section-label">已选技能 ({{ formData.skills.length }})</text>
                   <view class="selected-list">
@@ -163,9 +163,9 @@
 
               <view class="form-section" v-show="activeTab === 'knowledge'">
                 <view class="form-group">
-                  <label class="form-label">关联知识库</label>
+                  <view class="form-label">关联知识库</view>
                   <view class="knowledge-selector">
-                    <view class="knowledge-item" v-for="kb in availableKnowledge" :key="kb.id">
+                    <view class="knowledge-item" v-for="kb in availableKnowledge" :key="kb.id" @click="toggleKnowledge(kb.id)">
                       <view class="kb-checkbox" :class="{ checked: formData.knowledge.includes(kb.id) }">
                         <text v-if="formData.knowledge.includes(kb.id)">✓</text>
                       </view>
@@ -193,7 +193,7 @@
                   <text class="tag" v-for="tag in formData.tags" :key="tag">{{ tag }}</text>
                 </view>
               </view>
-              
+
               <view class="preview-chat">
                 <view class="chat-message bot">
                   <text>你好！我是{{ formData.name || '智能助手' }}，有什么可以帮你的吗？</text>
@@ -243,7 +243,6 @@ const loadSkills = async () => {
 const loadKnowledge = async () => {
   try {
     const categories = await knowledgeService.getCategories()
-    // getCategories may return { id, name, count }
     if (Array.isArray(categories)) {
       availableKnowledge.value = categories.map(c => ({
         id: c.id,
@@ -302,30 +301,34 @@ const toggleSkill = (skillId: string) => {
     formData.value.skills.splice(idx, 1)
   }
 }
+
+const toggleKnowledge = (kbId: string) => {
+  const idx = formData.value.knowledge.indexOf(kbId)
+  if (idx === -1) {
+    formData.value.knowledge.push(kbId)
+  } else {
+    formData.value.knowledge.splice(idx, 1)
+  }
+}
 </script>
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  background: #fff;
-  padding: 20px 32px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
 .header-actions {
@@ -334,26 +337,18 @@ const toggleSkill = (skillId: string) => {
 }
 
 .btn {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 8px 20px;
+  border-radius: 24px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
-  
-  &.primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #fff;
-  }
-  
-  &.secondary {
-    background: #f3f4f6;
-    color: #6b7280;
-    border: 1px solid #e5e7eb;
-  }
+
+  &.primary { background: #1890ff; color: #fff; &:hover { background: #40a9ff; } }
+  &.secondary { background: #fff; border: 1px solid #d9d9d9; color: #666; &:hover { border-color: #1890ff; color: #1890ff; } }
 }
 
 .page-content {
-  padding: 24px 32px;
+  // Remove padding as Layout handles it
 }
 
 .builder-layout {
@@ -365,12 +360,14 @@ const toggleSkill = (skillId: string) => {
   flex: 1;
   background: #fff;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   overflow: hidden;
 }
 
 .builder-tabs {
   display: flex;
-  border-bottom: 1px solid #e8e8e8;
+  border-bottom: 1px solid #f0f0f0;
+  background: #fafafa;
 }
 
 .tab-item {
@@ -378,21 +375,23 @@ const toggleSkill = (skillId: string) => {
   cursor: pointer;
   border-bottom: 2px solid transparent;
   transition: all 0.2s;
-  
+
   text {
     font-size: 14px;
-    color: #6b7280;
+    color: #666;
   }
-  
+
   &:hover {
-    background: #f9fafb;
+    color: #1890ff;
+    text { color: #1890ff; }
   }
-  
+
   &.active {
-    border-bottom-color: #4f46e5;
-    
+    border-bottom-color: #1890ff;
+    background: #fff;
+
     text {
-      color: #4f46e5;
+      color: #1890ff;
       font-weight: 500;
     }
   }
@@ -423,34 +422,37 @@ const toggleSkill = (skillId: string) => {
 .form-label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: #333;
 }
 
 .required {
-  color: #ef4444;
+  color: #ff4d4f;
 }
 
 .form-input, .form-select, .form-textarea {
-  padding: 10px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   font-size: 14px;
   background: #fff;
-  transition: border-color 0.2s;
-  
+  color: #333;
+  transition: all 0.2s;
+
   &:focus {
     outline: none;
-    border-color: #4f46e5;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
   }
-  
+
   &::placeholder {
-    color: #9ca3af;
+    color: #bbb;
   }
 }
 
 .form-textarea {
   resize: vertical;
-  
+  min-height: 80px;
+
   &.code {
     font-family: 'Monaco', 'Menlo', monospace;
     font-size: 13px;
@@ -460,7 +462,7 @@ const toggleSkill = (skillId: string) => {
 
 .form-hint {
   font-size: 12px;
-  color: #9ca3af;
+  color: #999;
 }
 
 .tag-input {
@@ -468,31 +470,40 @@ const toggleSkill = (skillId: string) => {
   flex-wrap: wrap;
   gap: 8px;
   padding: 8px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  min-height: 42px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  min-height: 48px;
+  background: #fff;
+
+  &:focus-within {
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  }
 }
 
 .tag-item {
   display: flex;
   align-items: center;
   gap: 4px;
-  padding: 4px 10px;
-  background: #eef2ff;
+  padding: 4px 8px;
+  background: #e6f7ff;
   border-radius: 4px;
-  
+  border: 1px solid #91d5ff;
+
   text {
-    font-size: 13px;
-    color: #4f46e5;
+    font-size: 12px;
+    color: #1890ff;
   }
 }
 
 .tag-remove {
   cursor: pointer;
-  color: #6b7280;
-  
+  color: #999;
+  font-size: 14px;
+  line-height: 1;
+
   &:hover {
-    color: #ef4444;
+    color: #ff4d4f;
   }
 }
 
@@ -501,9 +512,15 @@ const toggleSkill = (skillId: string) => {
   min-width: 100px;
   border: none;
   font-size: 13px;
-  
+  background: transparent;
+  color: #333;
+
   &:focus {
     outline: none;
+  }
+
+  &::placeholder {
+    color: #bbb;
   }
 }
 
@@ -515,11 +532,13 @@ const toggleSkill = (skillId: string) => {
 
 .example-item {
   padding: 16px;
-  background: #f9fafb;
+  background: #f9f9f9;
   border-radius: 8px;
-  
+  border: 1px solid #f0f0f0;
+
   .form-textarea {
     margin-top: 8px;
+    background: #fff;
   }
 }
 
@@ -528,69 +547,68 @@ const toggleSkill = (skillId: string) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 8px;
-  
+
   text:first-child {
     font-size: 14px;
     font-weight: 500;
-    color: #1f2937;
+    color: #333;
   }
 }
 
 .example-remove {
   font-size: 13px;
-  color: #ef4444;
+  color: #ff4d4f;
   cursor: pointer;
 }
 
 .add-example-btn {
   padding: 12px;
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
   text-align: center;
   cursor: pointer;
-  
+
   text {
     font-size: 14px;
-    color: #6b7280;
+    color: #999;
   }
-  
+
   &:hover {
-    border-color: #4f46e5;
-    
-    text {
-      color: #4f46e5;
-    }
+    border-color: #1890ff;
+    text { color: #1890ff; }
   }
 }
 
 .section-label {
   font-size: 14px;
   font-weight: 500;
-  color: #374151;
+  color: #333;
   margin-bottom: 12px;
   display: block;
 }
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
 .skill-card {
   padding: 14px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8ecf1;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  
+  background: #fff;
+
   &:hover {
-    border-color: #4f46e5;
+    border-color: #1890ff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
   }
-  
+
   &.selected {
-    border-color: #4f46e5;
-    background: #eef2ff;
+    border-color: #1890ff;
+    background: #e6f7ff;
   }
 }
 
@@ -608,12 +626,12 @@ const toggleSkill = (skillId: string) => {
 .skill-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: #333;
 }
 
 .skill-desc {
   font-size: 12px;
-  color: #6b7280;
+  color: #888;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
@@ -622,7 +640,7 @@ const toggleSkill = (skillId: string) => {
 
 .skill-category {
   font-size: 11px;
-  color: #9ca3af;
+  color: #999;
   margin-top: 6px;
   display: block;
 }
@@ -630,7 +648,7 @@ const toggleSkill = (skillId: string) => {
 .selected-skills {
   margin-top: 20px;
   padding-top: 20px;
-  border-top: 1px solid #e8e8e8;
+  border-top: 1px solid #f0f0f0;
 }
 
 .selected-list {
@@ -643,22 +661,23 @@ const toggleSkill = (skillId: string) => {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 6px 12px;
-  background: #4f46e5;
-  border-radius: 6px;
-  
+  padding: 6px 10px;
+  background: #e6f7ff;
+  border-radius: 4px;
+  border: 1px solid #91d5ff;
+
   text {
     font-size: 13px;
-    color: #fff;
+    color: #1890ff;
   }
 }
 
 .remove-btn {
   cursor: pointer;
   font-size: 16px;
-  
+
   &:hover {
-    color: #fee2e2;
+    color: #ff4d4f;
   }
 }
 
@@ -673,28 +692,30 @@ const toggleSkill = (skillId: string) => {
   align-items: center;
   gap: 12px;
   padding: 12px;
-  border: 1px solid #e5e7eb;
+  border: 1px solid #e8ecf1;
   border-radius: 8px;
   cursor: pointer;
-  
+  background: #fff;
+
   &:hover {
-    background: #f9fafb;
+    background: #f9f9f9;
   }
 }
 
 .kb-checkbox {
   width: 20px;
   height: 20px;
-  border: 2px solid #d1d5db;
+  border: 2px solid #d9d9d9;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  
+  transition: all 0.2s;
+
   &.checked {
-    background: #4f46e5;
-    border-color: #4f46e5;
-    
+    background: #1890ff;
+    border-color: #1890ff;
+
     text {
       color: #fff;
       font-size: 12px;
@@ -710,29 +731,32 @@ const toggleSkill = (skillId: string) => {
 .kb-name {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: #333;
 }
 
 .kb-desc {
   font-size: 12px;
-  color: #9ca3af;
+  color: #999;
 }
 
 .builder-preview {
-  width: 360px;
+  width: 340px;
   flex-shrink: 0;
   background: #fff;
   border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  position: sticky;
+  top: 24px;
 }
 
 .preview-header {
   padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
-  
+  border-bottom: 1px solid #f0f0f0;
+
   text {
     font-size: 14px;
     font-weight: 600;
-    color: #1f2937;
+    color: #333;
   }
 }
 
@@ -742,37 +766,40 @@ const toggleSkill = (skillId: string) => {
 
 .preview-card {
   padding: 20px;
-  background: linear-gradient(135deg, #eef2ff 0%, #ddd6fe 100%);
+  background: #f0f7ff;
   border-radius: 12px;
   text-align: center;
   margin-bottom: 16px;
+  border: 1px solid #bae7ff;
 }
 
 .preview-agent-icon {
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
   margin: 0 auto 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 24px;
+  box-shadow: 0 4px 10px rgba(24, 144, 255, 0.2);
 }
 
 .preview-agent-name {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #333;
   display: block;
   margin-bottom: 6px;
 }
 
 .preview-agent-desc {
   font-size: 13px;
-  color: #6b7280;
+  color: #666;
   display: block;
   margin-bottom: 12px;
+  line-height: 1.4;
 }
 
 .preview-tags {
@@ -780,41 +807,48 @@ const toggleSkill = (skillId: string) => {
   justify-content: center;
   gap: 6px;
   flex-wrap: wrap;
-  
+
   .tag {
     padding: 3px 8px;
-    background: rgba(79, 70, 229, 0.2);
+    background: #e6f7ff;
     border-radius: 4px;
     font-size: 11px;
-    color: #4f46e5;
+    color: #1890ff;
+    border: 1px solid #91d5ff;
   }
 }
 
 .preview-chat {
-  background: #f9fafb;
+  background: #f9f9f9;
   border-radius: 12px;
   padding: 16px;
+  border: 1px solid #f0f0f0;
 }
 
 .chat-message {
-  max-width: 80%;
-  
+  max-width: 85%;
+
   &.bot {
     margin-right: auto;
-    
+
     text {
       background: #fff;
-      color: #1f2937;
+      color: #333;
+      border: 1px solid #e8ecf1;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.05);
     }
   }
-  
+
   text {
     display: inline-block;
     padding: 10px 14px;
     border-radius: 12px;
     font-size: 13px;
     line-height: 1.5;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
   }
+}
+
+input, textarea, select {
+  pointer-events: auto;
 }
 </style>

@@ -14,7 +14,11 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 
@@ -95,12 +99,43 @@ public class KnowledgeService {
         documentRepository.deleteById(id);
     }
 
+    public DocumentResponse uploadFile(MultipartFile file, String category) throws IOException {
+        if (file.isEmpty()) {
+            throw new BusinessException(400, "文件不能为空");
+        }
+
+        String fileName = System.currentTimeMillis() + "_" + file.getOriginalFilename();
+        String path = "src/main/resources/static/uploads/" + fileName;
+        File dest = new File(path);
+        dest.getParentFile().mkdirs();
+        file.transferTo(dest);
+
+        KnowledgeDocument doc = new KnowledgeDocument();
+        doc.setId(UUID.randomUUID().toString());
+        doc.setTitle(file.getOriginalFilename());
+        doc.setFilePath("/uploads/" + fileName);
+        doc.setCategory(category != null ? category : "default");
+        doc.setStatus(DocumentStatus.UPLOADING);
+        doc.setVectorStatus(VectorStatus.PENDING);
+        doc.setSize(file.getSize());
+        doc.setUploadedBy("system");
+
+        KnowledgeDocument saved = documentRepository.save(doc);
+        return convertToResponse(saved);
+    }
+
     public List<DocumentResponse> search(String query, int limit) {
-        Pageable pageable = PageRequest.of(0, limit);
-        Page<KnowledgeDocument> documents = documentRepository.findByTitleContaining(query, pageable);
-        return documents.getContent().stream()
-                .map(this::convertToResponse)
-                .toList();
+        List<KnowledgeDocument> allDocs = documentRepository.findAll();
+        return allDocs.stream()
+            .filter(doc -> doc.getTitle().toLowerCase().contains(query.toLowerCase()))
+            .sorted((a, b) -> {
+                int scoreA = a.getTitle().toLowerCase().contains(query.toLowerCase()) ? 10 : 1;
+                int scoreB = b.getTitle().toLowerCase().contains(query.toLowerCase()) ? 10 : 1;
+                return Integer.compare(scoreB, scoreA);
+            })
+            .limit(limit)
+            .map(this::convertToResponse)
+            .toList();
     }
 
     private DocumentResponse convertToResponse(KnowledgeDocument document) {

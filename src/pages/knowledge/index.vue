@@ -1,17 +1,14 @@
 <template>
   <Layout>
     <view class="page">
+      <!-- Header -->
       <view class="page-header">
         <view class="header-content">
           <text class="page-title">知识库管理</text>
           <view class="header-actions">
             <view class="search-box">
               <text class="search-icon">🔍</text>
-              <input 
-                class="search-input" 
-                v-model="searchText" 
-                placeholder="搜索文档..."
-              />
+              <input class="search-input" v-model="searchText" placeholder="搜索文档..." />
             </view>
             <view class="btn primary" @click="uploadDocument">
               <text>📤 上传文档</text>
@@ -20,57 +17,54 @@
         </view>
       </view>
 
-      <view class="page-content">
-        <view class="filter-tabs">
-          <view 
-            class="tab-item" 
+      <!-- Filters -->
+      <view class="filter-bar">
+        <view class="filter-chips">
+          <view
+            class="chip"
             :class="{ active: activeCategory === item.id }"
-            v-for="item in categories" 
+            v-for="item in categories"
             :key="item.id"
             @click="activeCategory = item.id"
           >
             <text>{{ item.name }}</text>
           </view>
         </view>
+      </view>
 
-        <view class="document-list">
-          <view class="doc-card" v-for="doc in filteredDocs" :key="doc.id">
-            <view class="doc-icon">
-              <text>{{ getTypeIcon(doc.type) }}</text>
+      <!-- Document List -->
+      <view class="doc-list">
+        <view class="doc-card" v-for="doc in filteredDocs" :key="doc.id">
+          <view class="doc-icon">{{ getTypeIcon(doc.type) }}</view>
+          <view class="doc-info">
+            <text class="doc-title">{{ doc.title }}</text>
+            <view class="doc-meta">
+              <text class="meta-tag">{{ doc.category }}</text>
+              <text class="meta-tag">{{ formatSize(doc.size) }}</text>
+              <text class="meta-tag">{{ doc.uploadedBy }}</text>
             </view>
-            <view class="doc-info">
-              <text class="doc-title">{{ doc.title }}</text>
-              <view class="doc-meta">
-                <text>{{ doc.category }}</text>
-                <text>·</text>
-                <text>{{ formatSize(doc.size) }}</text>
-                <text>·</text>
-                <text>{{ doc.uploadedBy }}</text>
+            <view class="doc-status">
+              <view class="status-badge" :class="doc.status">
+                <text>{{ getStatusText(doc.status) }}</text>
               </view>
-              <view class="doc-status">
-                <view class="status-item" :class="doc.status">
-                  <text>{{ getStatusText(doc.status) }}</text>
-                </view>
-                <view class="status-item" :class="doc.vectorStatus">
-                  <text>{{ getVectorStatusText(doc.vectorStatus) }}</text>
-                </view>
-              </view>
-            </view>
-            <view class="doc-actions">
-              <view class="action-btn" @click="previewDoc(doc)">
-                <text>👁️ 预览</text>
-              </view>
-              <view class="action-btn danger" @click="deleteDoc(doc)">
-                <text>🗑️ 删除</text>
+              <view class="status-badge vector" :class="doc.vectorStatus">
+                <text>{{ getVectorStatusText(doc.vectorStatus) }}</text>
               </view>
             </view>
           </view>
-
-          <view class="empty-state" v-if="filteredDocs.length === 0">
-            <text class="empty-icon">📭</text>
-            <text class="empty-text">暂无文档</text>
-            <text class="empty-hint">点击上方按钮上传文档</text>
+          <view class="doc-actions">
+            <view class="action-btn secondary" @click="previewDoc(doc)">
+              <text>👁️ 预览</text>
+            </view>
+            <view class="action-btn danger" @click="deleteDoc(doc)">
+              <text>🗑️ 删除</text>
+            </view>
           </view>
+        </view>
+
+        <view class="empty-state" v-if="filteredDocs.length === 0">
+          <text class="empty-icon">📭</text>
+          <text class="empty-text">暂无文档</text>
         </view>
       </view>
     </view>
@@ -88,20 +82,46 @@ const activeCategory = ref('all')
 const docs = ref<KnowledgeDocument[]>([])
 const categories = ref<{ id: string; name: string }[]>([])
 
+const filteredDocs = computed(() => {
+  let result = docs.value
+  if (searchText.value) {
+    const keyword = searchText.value.toLowerCase()
+    result = result.filter(d => d.title.toLowerCase().includes(keyword))
+  }
+  return result
+})
+
+const getTypeIcon = (type: string) => {
+  const icons: Record<string, string> = { pdf: '📕', word: '📘', excel: '📗', markdown: '📝', url: '🔗' }
+  return icons[type] || '📄'
+}
+
+const formatSize = (bytes: number) => {
+  if (bytes < 1024) return bytes + ' B'
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
+}
+
+const getStatusText = (status: string) => {
+  const texts: Record<string, string> = { uploading: '上传中', processing: '处理中', ready: '已就绪', failed: '失败' }
+  return texts[status] || status
+}
+
+const getVectorStatusText = (status: string) => {
+  const texts: Record<string, string> = { pending: '待向量化', indexing: '向量化中', completed: '已完成' }
+  return texts[status] || status
+}
+
 const loadDocuments = async () => {
   try {
     const params: any = {}
     if (activeCategory.value !== 'all') {
-      const cat = getCategoryName(activeCategory.value)
-      if (cat) params.category = cat
-    }
-    if (searchText.value) {
-      params.keyword = searchText.value
+      params.category = getCategoryName(activeCategory.value)
     }
     const response = await knowledgeService.list({ page: 1, size: 100, ...params })
     docs.value = response.list || []
   } catch (error) {
-    console.error('Failed to load documents:', error)
+    console.error(error)
   }
 }
 
@@ -115,108 +135,12 @@ const loadCategories = async () => {
       ]
     }
   } catch (error) {
-    console.error('Failed to load categories:', error)
+    console.error(error)
   }
-}
-
-const filteredDocs = computed(() => {
-  let result = docs.value
-
-  if (searchText.value) {
-    const keyword = searchText.value.toLowerCase()
-    result = result.filter(d => d.title.toLowerCase().includes(keyword))
-  }
-
-  return result
-})
-
-const getCategoryName = (id: string) => {
-  const map: Record<string, string> = {
-    all: '',
-    operation: '操作手册',
-    faq: 'FAQ',
-    finance: '财务文档',
-    tech: '技术文档',
-    standard: '标准规范'
-  }
-  return map[id] || ''
-}
-
-const getTypeIcon = (type: string) => {
-  const icons: Record<string, string> = {
-    pdf: '📕',
-    word: '📘',
-    excel: '📗',
-    markdown: '📝',
-    url: '🔗'
-  }
-  return icons[type] || '📄'
-}
-
-const formatSize = (bytes: number) => {
-  if (bytes < 1024) return bytes + ' B'
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
-}
-
-const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    uploading: '上传中',
-    processing: '处理中',
-    ready: '已就绪',
-    failed: '失败'
-  }
-  return texts[status] || status
-}
-
-const getVectorStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    pending: '待向量化',
-    indexing: '向量化中',
-    completed: '已完成'
-  }
-  return texts[status] || status
 }
 
 const uploadDocument = () => {
-  uni.chooseFile({
-    count: 1,
-    extension: ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'md', 'txt'],
-    success: (res) => {
-      uni.showLoading({ title: '上传中...' })
-      const tempFilePath = res.tempFiles[0]?.path || res.tempFilePaths?.[0]
-      if (!tempFilePath) {
-        uni.hideLoading()
-        uni.showToast({ title: '未选择文件', icon: 'none' })
-        return
-      }
-
-      const token = uni.getStorageSync('token') || ''
-      uni.uploadFile({
-        url: '/api/knowledge/upload',
-        filePath: tempFilePath,
-        name: 'file',
-        header: { Authorization: `Bearer ${token}` },
-        formData: { category: getCategoryName(activeCategory.value) || '' },
-        success: (uploadRes) => {
-          uni.hideLoading()
-          if (uploadRes.statusCode === 200) {
-            uni.showToast({ title: '上传成功', icon: 'success' })
-            loadDocuments()
-          } else {
-            uni.showToast({ title: '上传失败', icon: 'none' })
-          }
-        },
-        fail: (err) => {
-          uni.hideLoading()
-          uni.showToast({ title: '上传失败: ' + JSON.stringify(err), icon: 'none' })
-        }
-      })
-    },
-    fail: () => {
-      uni.showToast({ title: '取消选择文件', icon: 'none' })
-    }
-  })
+  uni.showToast({ title: '上传功能开发中', icon: 'none' })
 }
 
 onMounted(() => {
@@ -239,7 +163,7 @@ const deleteDoc = async (doc: KnowledgeDocument) => {
           uni.showToast({ title: '已删除', icon: 'success' })
           loadDocuments()
         } catch (e) {
-          uni.showToast({ title: '删除失败', icon: 'none' })
+          console.error(e)
         }
       }
     }
@@ -249,280 +173,154 @@ const deleteDoc = async (doc: KnowledgeDocument) => {
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  background: #fff;
-  padding: 20px 32px;
-  border-bottom: 1px solid #e8e8e8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
 }
 
 .header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  width: 100%;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
 .header-actions {
   display: flex;
   gap: 16px;
+  align-items: center;
 }
 
 .search-box {
   display: flex;
   align-items: center;
-  background: #f3f4f6;
-  border-radius: 8px;
-  padding: 10px 16px;
-  width: 300px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  padding: 8px 16px;
+  width: 240px;
+
+  &:focus-within { border-color: #1890ff; }
 }
 
-.search-icon {
-  font-size: 16px;
-  margin-right: 10px;
-}
-
-.search-input {
-  flex: 1;
-  font-size: 14px;
-  background: transparent;
-  color: #1f2937;
-  
-  &::placeholder {
-    color: #9ca3af;
-  }
-}
+.search-icon { margin-right: 8px; }
+.search-input { flex: 1; font-size: 14px; background: transparent; &::placeholder { color: #999; } }
 
 .btn {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 8px 20px;
+  border-radius: 24px;
   font-size: 14px;
   cursor: pointer;
   transition: all 0.2s;
-  
-  &.primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #fff;
-    
-    &:hover {
-      opacity: 0.9;
-    }
-  }
-  
-  &.danger {
-    background: #fee2e2;
-    color: #dc2626;
-    
-    &:hover {
-      background: #fecaca;
-    }
-  }
+
+  &.primary { background: #1890ff; color: #fff; &:hover { background: #40a9ff; } }
 }
 
-.page-content {
-  padding: 24px 32px;
-}
-
-.filter-tabs {
-  display: flex;
-  gap: 12px;
+.filter-bar {
   margin-bottom: 24px;
+}
+
+.filter-chips {
+  display: flex;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-.tab-item {
-  padding: 10px 20px;
+.chip {
+  padding: 6px 14px;
+  border-radius: 16px;
   background: #fff;
-  border-radius: 8px;
+  border: 1px solid #d9d9d9;
   cursor: pointer;
-  transition: all 0.2s;
-  
-  text {
-    font-size: 14px;
-    color: #6b7280;
-  }
-  
-  &:hover {
-    background: #f3f4f6;
-  }
-  
-  &.active {
-    background: #eef2ff;
-    
-    text {
-      color: #4f46e5;
-      font-weight: 600;
-    }
-  }
+
+  text { font-size: 13px; color: #666; }
+
+  &:hover { border-color: #1890ff; }
+
+  &.active { background: #1890ff; border-color: #1890ff; text { color: #fff; } }
 }
 
-.document-list {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
+.doc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .doc-card {
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #f3f4f6;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-  
-  &:hover {
-    background: #f9fafb;
-    border-radius: 8px;
-  }
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s;
+
+  &:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
 }
 
 .doc-icon {
-  width: 56px;
-  height: 56px;
-  border-radius: 10px;
-  background: #f3f4f6;
+  width: 48px;
+  height: 48px;
+  background: #f0f2f5;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  
-  text {
-    font-size: 28px;
-  }
+  font-size: 24px;
 }
 
 .doc-info {
   flex: 1;
-}
-
-.doc-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.doc-meta {
   display: flex;
+  flex-direction: column;
   gap: 8px;
-  margin-top: 6px;
-  
-  text {
-    font-size: 13px;
-    color: #9ca3af;
-  }
 }
 
-.doc-status {
-  display: flex;
-  gap: 12px;
-  margin-top: 8px;
-}
+.doc-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
 
-.status-item {
-  padding: 4px 10px;
-  border-radius: 4px;
-  
-  text {
-    font-size: 12px;
-  }
-  
-  &.uploading, &.processing {
-    background: #fef3c7;
-    text { color: #d97706; }
-  }
-  
-  &.ready {
-    background: #d1fae5;
-    text { color: #065f46; }
-  }
-  
-  &.failed {
-    background: #fee2e2;
-    text { color: #dc2626; }
-  }
-  
-  &.pending {
-    background: #f3f4f6;
-    text { color: #6b7280; }
-  }
-  
-  &.indexing {
-    background: #dbeafe;
-    text { color: #1d4ed8; }
-  }
-  
-  &.completed {
-    background: #d1fae5;
-    text { color: #065f46; }
-  }
-}
+.doc-meta { display: flex; gap: 8px; }
+.meta-tag { font-size: 12px; color: #888; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+
+.doc-status { display: flex; gap: 8px; }
+.status-badge { padding: 4px 8px; border-radius: 4px; font-size: 11px; background: #f0f2f5; color: #666; &.ready, &.completed { background: #f6ffed; color: #52c41a; } &.failed { background: #fff1f0; color: #ff4d4f; } &.uploading, &.processing, &.indexing { background: #e6f7ff; color: #1890ff; } }
 
 .doc-actions {
   display: flex;
-  gap: 10px;
+  gap: 8px;
 }
 
 .action-btn {
-  padding: 8px 14px;
-  border-radius: 6px;
-  background: #f3f4f6;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-size: 12px;
   cursor: pointer;
-  transition: all 0.2s;
-  
-  text {
-    font-size: 13px;
-    color: #6b7280;
-  }
-  
-  &:hover {
-    background: #e5e7eb;
-  }
-  
-  &.danger {
-    background: #fee2e2;
-    
-    text {
-      color: #dc2626;
-    }
-    
-    &:hover {
-      background: #fecaca;
-    }
-  }
+
+  &.secondary { background: #f5f5f5; color: #666; }
+  &.danger { background: #fff1f0; color: #ff4d4f; }
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
+  padding: 60px;
+  background: #fff;
+  border-radius: 12px;
 }
 
-.empty-icon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-.empty-text {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.empty-hint {
-  font-size: 14px;
-  color: #9ca3af;
-  margin-top: 8px;
-}
+.empty-icon { font-size: 48px; opacity: 0.5; margin-bottom: 12px; }
+.empty-text { font-size: 16px; color: #888; }
 </style>

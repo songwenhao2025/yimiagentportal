@@ -78,16 +78,18 @@ const toggleFavorite = () => {
 
 <style lang="scss">
 .agent-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 16px;
+  background: rgba(30, 41, 59, 0.6);
+  backdrop-filter: blur(20px);
+  border-radius: 16px;
+  padding: 20px;
   cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid #f3f4f6;
+  transition: all 0.3s ease;
+  border: 1px solid #2d3a4f;
   
   &:hover {
-    border-color: #4f46e5;
-    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.1);
+    border-color: rgba(0, 102, 255, 0.5);
+    box-shadow: 0 8px 30px rgba(0, 102, 255, 0.15);
+    transform: translateY(-4px);
   }
   
   &.compact {
@@ -117,19 +119,20 @@ const toggleFavorite = () => {
 .card-header {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+  gap: 14px;
+  margin-bottom: 14px;
 }
 
 .agent-avatar {
-  width: 44px;
-  height: 44px;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0066ff 0%, #00aaff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 22px;
+  box-shadow: 0 4px 15px rgba(0, 102, 255, 0.3);
 }
 
 .agent-info {
@@ -139,14 +142,14 @@ const toggleFavorite = () => {
 }
 
 .agent-name {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #ffffff;
 }
 
 .agent-dept {
   font-size: 12px;
-  color: #9ca3af;
+  color: #607080;
   margin-top: 2px;
 }
 
@@ -156,33 +159,36 @@ const toggleFavorite = () => {
 }
 
 .tag {
-  padding: 4px 8px;
-  background: #eef2ff;
-  border-radius: 4px;
+  padding: 4px 10px;
+  background: rgba(0, 102, 255, 0.15);
+  border: 1px solid rgba(0, 102, 255, 0.3);
+  border-radius: 20px;
   font-size: 11px;
-  color: #4f46e5;
+  color: #00aaff;
 }
 
 .agent-desc {
   font-size: 13px;
-  color: #6b7280;
-  line-height: 1.5;
+  color: #a0b0c0;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   overflow: hidden;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .card-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding-top: 14px;
+  border-top: 1px solid #2d3a4f;
 }
 
 .stats {
   display: flex;
-  gap: 16px;
+  gap: 20px;
 }
 
 .stat-item {
@@ -192,50 +198,58 @@ const toggleFavorite = () => {
 
 .stat-label {
   font-size: 11px;
-  color: #9ca3af;
+  color: #607080;
 }
 
 .stat-value {
   font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
+  color: #ffffff;
   
   &.success {
-    color: #10b981;
+    color: #00cc88;
   }
 }
 
 .actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
 }
 
 .action-btn {
-  padding: 6px 14px;
-  border-radius: 6px;
+  padding: 8px 16px;
+  border-radius: 8px;
   font-size: 13px;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
   
   &.use {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #0066ff 0%, #00aaff 100%);
     color: #fff;
+    box-shadow: 0 4px 15px rgba(0, 102, 255, 0.4);
     
     &:hover {
-      opacity: 0.9;
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(0, 102, 255, 0.5);
     }
   }
   
   &.favorite {
-    background: #f3f4f6;
-    color: #9ca3af;
+    background: rgba(45, 58, 79, 0.8);
+    color: #607080;
+    border: 1px solid #2d3a4f;
     
     &:hover {
-      background: #e5e7eb;
+      background: rgba(0, 102, 255, 0.1);
+      border-color: rgba(0, 102, 255, 0.3);
+      color: #a0b0c0;
     }
     
     &.active {
-      color: #f59e0b;
+      color: #ffaa00;
+      border-color: rgba(255, 170, 0, 0.3);
+      background: rgba(255, 170, 0, 0.1);
     }
   }
 }

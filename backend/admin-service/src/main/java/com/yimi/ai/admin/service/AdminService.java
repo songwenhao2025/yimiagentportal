@@ -11,17 +11,22 @@ import com.yimi.ai.common.entity.CostRecord;
 import com.yimi.ai.common.enums.AuditResult;
 import com.yimi.ai.common.response.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +35,10 @@ public class AdminService {
     private final AuditLogRepository auditLogRepository;
     private final CostRecordRepository costRecordRepository;
     private final AgentRepository agentRepository;
+    private final RestTemplate restTemplate;
+
+    @Value("${skill.service.url:http://localhost:8083}")
+    private String skillServiceUrl;
 
     public PageResponse<AuditLogResponse> getAuditLogs(String userId, String action, String resource, 
             String startTime, String endTime, int page, int size) {
@@ -167,5 +176,60 @@ public class AdminService {
     public static class DepartmentCostResponse {
         private String department;
         private Double cost;
+    }
+
+    public List<Integer> getCallTrends(int days) {
+        LocalDate end = LocalDate.now();
+        LocalDate start = end.minusDays(days - 1);
+        List<Integer> trends = new ArrayList<>();
+        for (int i = 0; i < days; i++) {
+            LocalDate date = start.plusDays(i);
+            List<CostRecord> records = costRecordRepository.findByDate(date);
+            long dailyCalls = records.stream().mapToLong(CostRecord::getApiCalls).sum();
+            trends.add((int) dailyCalls);
+        }
+        return trends;
+    }
+
+    public List<Map<String, Object>> getAgentRanking(int topN) {
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        agentRepository.findTopByUsageCount(PageRequest.of(0, topN)).forEach(agent -> {
+            Map<String, Object> item = new HashMap<>();
+            item.put("name", agent.getName());
+            item.put("department", agent.getDepartment() != null ? agent.getDepartment().getDescription() : "");
+            item.put("count", agent.getUsageCount());
+            ranking.add(item);
+        });
+        return ranking;
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> getSkillRanking(int topN) {
+        List<Map<String, Object>> ranking = new ArrayList<>();
+        try {
+            ResponseEntity<Map> response = restTemplate.exchange(
+                skillServiceUrl + "/api/skills?page=1&size=" + topN,
+                org.springframework.http.HttpMethod.GET,
+                null,
+                Map.class
+            );
+            Map<String, Object> body = response.getBody();
+            if (body != null && body.containsKey("data")) {
+                Map<String, Object> data = (Map<String, Object>) body.get("data");
+                List<Map<String, Object>> skills = (List<Map<String, Object>>) data.get("list");
+                if (skills != null) {
+                    for (Map<String, Object> skill : skills) {
+                        Map<String, Object> item = new HashMap<>();
+                        item.put("name", skill.get("name"));
+                        item.put("category", skill.get("category"));
+                        item.put("count", skill.get("usageCount"));
+                        ranking.add(item);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Return empty list on error
+        }
+        return ranking;
     }
 }

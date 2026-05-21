@@ -42,6 +42,20 @@
 			}
 		},
 		{
+			"path": "pages/workflow/designer",
+			"style": {
+				"navigationBarTitleText": "流程设计器",
+				"navigationStyle": "custom"
+			}
+		},
+		{
+			"path": "pages/workflow/execution",
+			"style": {
+				"navigationBarTitleText": "执行历史",
+				"navigationStyle": "custom"
+			}
+		},
+		{
 			"path": "pages/knowledge/index",
 			"style": {
 				"navigationBarTitleText": "知识库管理",

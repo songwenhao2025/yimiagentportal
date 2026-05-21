@@ -8,7 +8,7 @@ export interface Agent {
   avgTime: number
   dailyCalls: number
   usageCount: number
-  creator: string
+  creatorId: string
   createdAt: string
   status: 'online' | 'offline' | 'pending'
   isFavorite?: boolean
@@ -34,7 +34,7 @@ export const mockAgents: Agent[] = [
     avgTime: 2.3,
     dailyCalls: 120,
     usageCount: 1580,
-    creator: '张工',
+    creatorId: '张工',
     createdAt: '2024-01-15',
     status: 'online',
     isFavorite: true,
@@ -50,7 +50,7 @@ export const mockAgents: Agent[] = [
     avgTime: 1.8,
     dailyCalls: 95,
     usageCount: 1240,
-    creator: '李经理',
+    creatorId: '李经理',
     createdAt: '2024-02-20',
     status: 'online',
     rating: 4.6
@@ -65,7 +65,7 @@ export const mockAgents: Agent[] = [
     avgTime: 3.1,
     dailyCalls: 78,
     usageCount: 980,
-    creator: '王分析师',
+    creatorId: '王分析师',
     createdAt: '2024-03-10',
     status: 'online',
     isFavorite: true,
@@ -81,7 +81,7 @@ export const mockAgents: Agent[] = [
     avgTime: 0.8,
     dailyCalls: 260,
     usageCount: 3200,
-    creator: '赵客服',
+    creatorId: '赵客服',
     createdAt: '2024-01-25',
     status: 'online',
     rating: 4.5
@@ -96,7 +96,7 @@ export const mockAgents: Agent[] = [
     avgTime: 1.2,
     dailyCalls: 150,
     usageCount: 1850,
-    creator: '孙主管',
+    creatorId: '孙主管',
     createdAt: '2024-02-05',
     status: 'online',
     rating: 4.7
@@ -111,7 +111,7 @@ export const mockAgents: Agent[] = [
     avgTime: 2.5,
     dailyCalls: 45,
     usageCount: 680,
-    creator: '周会计',
+    creatorId: '周会计',
     createdAt: '2024-03-01',
     status: 'online',
     rating: 4.8
@@ -126,7 +126,7 @@ export const mockAgents: Agent[] = [
     avgTime: 0.5,
     dailyCalls: 35,
     usageCount: 420,
-    creator: '陈工程师',
+    creatorId: '陈工程师',
     createdAt: '2024-04-15',
     status: 'pending'
   },
@@ -140,7 +140,7 @@ export const mockAgents: Agent[] = [
     avgTime: 3.5,
     dailyCalls: 52,
     usageCount: 560,
-    creator: '吴财务',
+    creatorId: '吴财务',
     createdAt: '2024-04-01',
     status: 'online',
     rating: 4.6

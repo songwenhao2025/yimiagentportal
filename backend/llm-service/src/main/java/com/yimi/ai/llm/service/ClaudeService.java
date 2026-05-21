@@ -81,11 +81,12 @@ public class ClaudeService {
         if (contentBlocks == null || contentBlocks.isEmpty()) {
             return "";
         }
-        ContentBlock firstBlock = contentBlocks.get(0);
-        if (firstBlock == null) {
-            return "";
+        for (ContentBlock block : contentBlocks) {
+            if (block != null && block.text().isPresent()) {
+                return block.text().get().text();
+            }
         }
-        return firstBlock.text().map(t -> t.text()).orElse("");
+        return "";
     }
 
     public SkillGenerateResponse generateSkill(SkillGenerateRequest request) {

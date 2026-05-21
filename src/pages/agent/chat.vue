@@ -2,81 +2,70 @@
   <Layout>
     <view class="page">
       <view class="page-header">
-        <view class="header-content">
-          <view class="header-left">
-            <text class="page-title">{{ agent.name }}</text>
-            <text class="page-subtitle">{{ agent.description }}</text>
+        <view class="header-left">
+          <text class="page-title">{{ agent.name }}</text>
+          <view class="status-badge" :class="agent.status">
+            <text>{{ getStatusText(agent.status) }}</text>
           </view>
-          <view class="header-right">
-            <view class="agent-status" :class="agent.status">
-              <view class="status-dot"></view>
-              <text>{{ agent.status === 'online' ? '在线' : agent.status === 'offline' ? '离线' : '待审核' }}</text>
-            </view>
-            <view class="more-btn" @click="showMenu">
-              <text>⋮</text>
-            </view>
-          </view>
+        </view>
+        <view class="more-btn" @click="showMenu">
+          <text>⋮</text>
         </view>
       </view>
 
       <view class="chat-container">
-        <scroll-view 
-          scroll-y 
-          class="chat-content" 
-          :style="{ height: contentHeight + 'px' }"
+        <scroll-view
+          scroll-y
+          class="chat-scroll"
           :scroll-into-view="scrollToId"
           scroll-with-animation
         >
-          <view class="message-list">
-            <view class="welcome-message">
-              <view class="welcome-icon">🤖</view>
-              <text class="welcome-title">欢迎使用{{ agent.name }}</text>
-              <text class="welcome-desc">{{ agent.description }}</text>
-              <view class="quick-actions">
-                <view class="quick-btn" v-for="action in quickActions" :key="action" @click="sendQuick(action)">
-                  <text>{{ action }}</text>
-                </view>
+          <view class="welcome-card">
+            <view class="welcome-icon">🤖</view>
+            <text class="welcome-title">欢迎使用{{ agent.name }}</text>
+            <text class="welcome-desc">{{ agent.description }}</text>
+            <view class="quick-actions">
+              <view class="quick-btn" v-for="action in quickActions" :key="action" @click="sendQuick(action)">
+                <text>{{ action }}</text>
               </view>
             </view>
+          </view>
 
-            <view 
-              class="message-item" 
+          <view class="message-list">
+            <view
+              class="message-item"
               :class="{ user: msg.isUser }"
-              v-for="msg in messages" 
+              v-for="msg in messages"
               :key="msg.id"
               :id="'msg-' + msg.id"
             >
-              <view class="message-avatar">
+              <view class="avatar" :class="{ user: msg.isUser }">
                 <text>{{ msg.isUser ? '👤' : '🤖' }}</text>
               </view>
-              <view class="message-content">
-                <view class="message-bubble" :class="{ user: msg.isUser }">
-                  <text>{{ msg.content }}</text>
-                </view>
-                <text class="message-time">{{ msg.time }}</text>
+              <view class="bubble" :class="{ user: msg.isUser }">
+                <text>{{ msg.content }}</text>
               </view>
+              <text class="time">{{ msg.time }}</text>
             </view>
 
-            <view class="typing-indicator" v-if="isTyping">
-              <view class="typing-dots">
+            <view class="typing" v-if="isTyping">
+              <view class="avatar">🤖</view>
+              <view class="dots">
                 <view class="dot"></view>
                 <view class="dot"></view>
                 <view class="dot"></view>
               </view>
-              <text>正在思考...</text>
             </view>
           </view>
         </scroll-view>
 
         <view class="input-bar">
-          <view class="input-wrap">
-            <input 
-              class="chat-input" 
-              v-model="inputText" 
-              placeholder="输入问题或指令..."
-              @confirm="sendMessage"
-            />
-          </view>
+          <input
+            class="chat-input"
+            v-model="inputText"
+            placeholder="输入问题或指令..."
+            @confirm="sendMessage"
+          />
           <view class="send-btn" :class="{ active: inputText.trim() }" @click="sendMessage">
             <text>发送</text>
           </view>
@@ -100,15 +89,22 @@ interface Message {
   time: string
 }
 
-const contentHeight = ref(500)
 const inputText = ref('')
 const isTyping = ref(false)
 const scrollToId = ref('')
-const agent = ref<Agent>(mockAgents[0])
+const agent = ref<Agent>({
+  id: '', name: '', description: '', department: '', status: 'pending',
+  tags: [], successRate: 0, avgTime: 0, dailyCalls: 0, usageCount: 0,
+  creatorId: '', createdAt: '', isFavorite: false, rating: 0
+})
 
 const quickActions = ['查询路由', '计算时效', '创建工单', '查看报表']
-
 const messages = ref<Message[]>([])
+
+const getStatusText = (status: string) => {
+  const map: Record<string, string> = { online: '在线', offline: '离线', pending: '待审核' }
+  return map[status] || status
+}
 
 const sendMessage = async () => {
   if (!inputText.value.trim()) return
@@ -124,7 +120,6 @@ const sendMessage = async () => {
   const currentInput = inputText.value
   inputText.value = ''
   scrollToBottom()
-
   isTyping.value = true
 
   try {
@@ -178,12 +173,6 @@ const showMenu = () => {
 }
 
 onMounted(async () => {
-  uni.getSystemInfo({
-    success: (res) => {
-      contentHeight.value = res.windowHeight - 200
-    }
-  })
-
   const pages = getCurrentPages()
   const currentPage = pages[pages.length - 1]
   const options = (currentPage as unknown as { options?: { id?: string } }).options
@@ -200,268 +189,176 @@ onMounted(async () => {
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
   display: flex;
   flex-direction: column;
+  height: calc(100vh - 64px);
+  background: #f5f7fa;
 }
 
 .page-header {
-  background: #fff;
-  padding: 16px 32px;
-  border-bottom: 1px solid #e8e8e8;
-  flex-shrink: 0;
-}
-
-.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 16px 24px;
+  background: #fff;
+  border-bottom: 1px solid #e8ecf1;
 }
 
 .header-left {
   display: flex;
-  flex-direction: column;
-  gap: 4px;
+  align-items: center;
+  gap: 12px;
 }
 
 .page-title {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
-.page-subtitle {
-  font-size: 14px;
-  color: #6b7280;
-}
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
 
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.agent-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 20px;
-  
-  text {
-    font-size: 13px;
-  }
-  
-  &.online {
-    background: #d1fae5;
-    text { color: #065f46; }
-    .status-dot { background: #10b981; }
-  }
-  
-  &.offline {
-    background: #f3f4f6;
-    text { color: #6b7280; }
-    .status-dot { background: #9ca3af; }
-  }
-  
-  &.pending {
-    background: #fef3c7;
-    text { color: #d97706; }
-    .status-dot { background: #f59e0b; }
-  }
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
+  &.online { background: #f6ffed; color: #52c41a; }
+  &.offline { background: #f5f5f5; color: #999; }
+  &.pending { background: #fffbe6; color: #faad14; }
 }
 
 .more-btn {
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  
-  text {
-    font-size: 24px;
-    color: #6b7280;
-  }
+  text { font-size: 20px; color: #999; }
 }
 
 .chat-container {
   flex: 1;
   display: flex;
   flex-direction: column;
-  padding: 24px;
-}
-
-.chat-content {
-  flex: 1;
   overflow: hidden;
 }
 
-.message-list {
-  height: 100%;
+.chat-scroll {
+  flex: 1;
+  padding: 20px;
 }
 
-.welcome-message {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 32px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+.welcome-card {
+  background: linear-gradient(135deg, #1890ff, #096dd9);
   border-radius: 16px;
+  padding: 24px;
+  text-align: center;
   margin-bottom: 24px;
-}
-
-.welcome-icon {
-  font-size: 48px;
-  margin-bottom: 12px;
-}
-
-.welcome-title {
-  font-size: 20px;
-  font-weight: 700;
   color: #fff;
 }
 
-.welcome-desc {
-  font-size: 14px;
-  color: rgba(255, 255, 255, 0.8);
-  margin-top: 6px;
-  text-align: center;
-}
+.welcome-icon { font-size: 48px; margin-bottom: 12px; }
+.welcome-title { font-size: 18px; font-weight: 600; display: block; margin-bottom: 8px; }
+.welcome-desc { font-size: 13px; opacity: 0.9; display: block; margin-bottom: 16px; }
 
 .quick-actions {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
   gap: 12px;
-  margin-top: 20px;
 }
 
 .quick-btn {
-  padding: 8px 18px;
+  padding: 8px 16px;
   background: rgba(255, 255, 255, 0.2);
   border-radius: 20px;
   cursor: pointer;
-  transition: all 0.2s;
-  
-  text {
-    font-size: 13px;
-    color: #fff;
-  }
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
+  text { font-size: 13px; color: #fff; }
+  &:hover { background: rgba(255, 255, 255, 0.3); }
+}
+
+.message-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .message-item {
   display: flex;
   gap: 12px;
-  margin-bottom: 20px;
-  
+  max-width: 85%;
+
   &.user {
     flex-direction: row-reverse;
-    
-    .message-content {
-      align-items: flex-end;
+    margin-left: auto;
+
+    .bubble {
+      background: #1890ff;
+      color: #fff;
+      border-radius: 16px 16px 4px 16px;
     }
-    
-    .message-bubble {
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-      
-      text { color: #fff; }
-    }
-    
-    .message-time {
-      text-align: right;
-    }
+
+    .time { text-align: right; }
   }
 }
 
-.message-avatar {
-  width: 48px;
-  height: 48px;
+.avatar {
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
-  background: #e5e7eb;
+  background: #f0f2f5;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 18px;
   flex-shrink: 0;
-  
-  text {
-    font-size: 24px;
-  }
 }
 
-.message-content {
-  display: flex;
-  flex-direction: column;
-  max-width: 70%;
-  gap: 6px;
-}
-
-.message-bubble {
-  padding: 14px 18px;
+.bubble {
+  padding: 12px 16px;
   background: #fff;
-  border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  
-  text {
-    font-size: 14px;
-    color: #1f2937;
-    line-height: 1.6;
-    white-space: pre-wrap;
-  }
+  color: #333;
+  border-radius: 16px 16px 16px 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+
+  text { font-size: 14px; line-height: 1.6; white-space: pre-wrap; }
 }
 
-.message-time {
-  text {
-    font-size: 12px;
-    color: #9ca3af;
-  }
+.time {
+  font-size: 11px;
+  color: #999;
+  margin-top: 4px;
 }
 
-.typing-indicator {
+.typing {
   display: flex;
+  gap: 12px;
   align-items: center;
-  gap: 8px;
-  padding: 14px;
-  background: #fff;
-  border-radius: 16px;
-  width: 160px;
-  
-  text {
-    font-size: 13px;
-    color: #6b7280;
-  }
 }
 
-.typing-dots {
+.dots {
   display: flex;
-  gap: 6px;
+  gap: 4px;
+  padding: 12px 16px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
 }
 
 .dot {
   width: 8px;
   height: 8px;
-  background: #9ca3af;
+  background: #1890ff;
   border-radius: 50%;
-  animation: typing 1.4s infinite ease-in-out;
-  
+  animation: bounce 1.4s infinite ease-in-out;
+
   &:nth-child(1) { animation-delay: 0s; }
   &:nth-child(2) { animation-delay: 0.2s; }
   &:nth-child(3) { animation-delay: 0.4s; }
 }
 
-@keyframes typing {
-  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
   40% { transform: scale(1); opacity: 1; }
 }
 
@@ -470,47 +367,39 @@ onMounted(async () => {
   gap: 12px;
   padding: 16px;
   background: #fff;
-  border-radius: 12px;
-  margin-top: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
-
-.input-wrap {
-  flex: 1;
-  background: #f3f4f6;
-  border-radius: 24px;
-  padding: 0 18px;
+  border-top: 1px solid #e8ecf1;
 }
 
 .chat-input {
-  width: 100%;
-  height: 48px;
+  flex: 1;
+  padding: 10px 16px;
+  border: 1px solid #e8ecf1;
+  border-radius: 24px;
   font-size: 14px;
+  background: #f9f9f9;
+  pointer-events: auto;
+  cursor: text;
+  user-select: text;
+  -webkit-user-select: text;
+
+  &:focus { 
+    border-color: #1890ff; 
+    background: #fff; 
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  }
 }
 
 .send-btn {
-  width: 80px;
-  height: 48px;
+  padding: 0 20px;
+  background: #d9d9d9;
+  color: #fff;
   border-radius: 24px;
-  background: #e5e7eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 14px;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
-  
-  text {
-    font-size: 14px;
-    color: #9ca3af;
-    font-weight: 500;
-  }
-  
-  &.active {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    
-    text {
-      color: #fff;
-    }
-  }
+
+  &.active { background: #1890ff; }
 }
 </style>

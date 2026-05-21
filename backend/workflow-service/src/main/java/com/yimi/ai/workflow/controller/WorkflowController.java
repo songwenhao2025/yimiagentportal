@@ -84,4 +84,16 @@ public class WorkflowController {
         WorkflowExecutionResponse response = workflowExecutionService.execute(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
+
+    @GetMapping("/{id}/executions")
+    public ResponseEntity<ApiResponse<PageResponse<WorkflowExecutionResponse>>> getExecutions(
+            @PathVariable String id,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String triggerType,
+            @RequestParam(defaultValue = "1") int page,
+            @RequestParam(defaultValue = "20") int size) {
+
+        PageResponse<WorkflowExecutionResponse> response = workflowExecutionService.list(id, status, triggerType, page, size);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
 }

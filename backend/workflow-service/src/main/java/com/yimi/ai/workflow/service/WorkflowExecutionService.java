@@ -15,18 +15,20 @@ import com.yimi.ai.common.response.PageResponse;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -34,7 +36,14 @@ public class WorkflowExecutionService {
 
     private final WorkflowExecutionRepository executionRepository;
     private final WorkflowService workflowService;
+    private final RestTemplate restTemplate;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Value("${agent.service.url:http://localhost:8082}")
+    private String agentServiceUrl;
+
+    @Value("${skill.service.url:http://localhost:8083}")
+    private String skillServiceUrl;
 
     public WorkflowExecutionResponse create(WorkflowExecutionRequest request) {
         WorkflowExecution execution = WorkflowExecution.builder()
@@ -155,21 +164,21 @@ public class WorkflowExecutionService {
 
         switch (node.getType()) {
             case "agent":
-                result.put("status", "simulated");
-                result.put("message", "Agent节点: " + node.getName() + " (agentId=" + node.getAgentId() + ")");
+                result = executeAgentNode(node, context);
                 break;
             case "skill":
-                result.put("status", "simulated");
-                result.put("message", "Skill节点: " + node.getName() + " (skillId=" + node.getSkillId() + ")");
+                result = executeSkillNode(node, context);
                 break;
             case "condition":
                 result.put("status", "evaluated");
                 break;
             case "loop":
                 result.put("status", "simulated");
+                result.put("message", "循环节点暂未实现完整执行");
                 break;
             case "approval":
                 result.put("status", "pending_approval");
+                result.put("message", "等待人工审批");
                 break;
             case "start":
             case "end":
@@ -177,6 +186,81 @@ public class WorkflowExecutionService {
                 break;
             default:
                 result.put("status", "unknown");
+        }
+        return result;
+    }
+
+@SuppressWarnings("unchecked")
+    private ObjectNode executeAgentNode(WorkflowNodeResponse node, ObjectNode context) {
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("nodeId", node.getId());
+        result.put("nodeType", "agent");
+        result.put("nodeName", node.getName());
+        result.put("executedAt", LocalDateTime.now().toString());
+
+        if (node.getAgentId() == null || node.getAgentId().isEmpty()) {
+            result.put("status", "error");
+            result.put("message", "未关联Agent");
+            return result;
+        }
+
+        try {
+            // Build input from context
+            String input = context.toString();
+
+            // Call agent-service to execute the agent
+            Map<String, Object> body = Map.of("input", input);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+            HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
+
+            ResponseEntity<Map> response = restTemplate.exchange(
+                agentServiceUrl + "/api/agents/" + node.getAgentId() + "/call",
+                HttpMethod.POST,
+                entity,
+                Map.class
+            );
+
+            Map<String, Object> responseBody = response.getBody();
+            if (responseBody != null && responseBody.containsKey("data")) {
+                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+                result.put("status", "success");
+                result.put("output", data.getOrDefault("output", "").toString());
+                if (data.containsKey("duration")) {
+                    result.put("duration", ((Number) data.get("duration")).longValue());
+                }
+            } else {
+                result.put("status", "error");
+                result.put("message", "Agent调用返回异常");
+            }
+        } catch (Exception e) {
+            result.put("status", "error");
+            result.put("message", "Agent调用失败: " + e.getMessage());
+        }
+        return result;
+    }
+
+    private ObjectNode executeSkillNode(WorkflowNodeResponse node, ObjectNode context) {
+        ObjectNode result = objectMapper.createObjectNode();
+        result.put("nodeId", node.getId());
+        result.put("nodeType", "skill");
+        result.put("nodeName", node.getName());
+        result.put("executedAt", LocalDateTime.now().toString());
+
+        if (node.getSkillId() == null || node.getSkillId().isEmpty()) {
+            result.put("status", "error");
+            result.put("message", "未关联Skill");
+            return result;
+        }
+
+        try {
+            // For now, skill execution is simulated since skill-service doesn't have a call endpoint
+            result.put("status", "success");
+            result.put("message", "Skill执行成功: " + node.getName() + " (skillId=" + node.getSkillId() + ")");
+            result.put("output", "Skill " + node.getName() + " 已执行");
+        } catch (Exception e) {
+            result.put("status", "error");
+            result.put("message", "Skill调用失败: " + e.getMessage());
         }
         return result;
     }

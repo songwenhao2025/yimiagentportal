@@ -67,4 +67,25 @@ export const adminService = {
   async getRoles(): Promise<{ id: string; name: string; description: string }[]> {
     return http.get('/api/admin/roles')
   },
+
+  /**
+   * 获取调用趋势数据
+   */
+  async getCallTrends(days: number = 7): Promise<number[]> {
+    return http.get('/api/admin/dashboard/trends', { days })
+  },
+
+  /**
+   * 获取Agent排行榜
+   */
+  async getAgentRanking(topN: number = 5): Promise<{ name: string; department: string; count: number }[]> {
+    return http.get('/api/admin/dashboard/agent-ranking', { topN })
+  },
+
+  /**
+   * 获取技能排行榜
+   */
+  async getSkillRanking(topN: number = 5): Promise<{ name: string; category: string; count: number }[]> {
+    return http.get('/api/admin/dashboard/skill-ranking', { topN })
+  },
 }

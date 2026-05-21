@@ -5,25 +5,29 @@
         <text class="page-title">管理中心</text>
       </view>
 
-      <view class="page-content">
-        <view class="admin-grid">
-          <view class="admin-card" v-for="item in menuItems" :key="item.title" @click="handleMenuClick(item)">
-            <view class="card-icon" :class="item.color">
-              <text>{{ item.icon }}</text>
+      <view class="content-grid">
+        <view class="column">
+          <!-- Menu Grid -->
+          <view class="card">
+            <text class="card-title">系统功能</text>
+            <view class="menu-grid">
+              <view class="menu-card" v-for="item in menuItems" :key="item.title" @click="handleMenuClick(item)">
+                <view class="menu-icon" :class="item.color">
+                  <text>{{ item.icon }}</text>
+                </view>
+                <view class="menu-content">
+                  <text class="menu-title">{{ item.title }}</text>
+                  <text class="menu-desc">{{ item.desc }}</text>
+                </view>
+              </view>
             </view>
-            <view class="card-content">
-              <text class="card-title">{{ item.title }}</text>
-              <text class="card-desc">{{ item.desc }}</text>
-            </view>
-            <text class="card-arrow">→</text>
           </view>
-        </view>
 
-        <view class="admin-sections">
-          <view class="section-card">
-            <view class="section-header">
-              <text class="section-title">待审核任务</text>
-              <text class="section-more">查看全部</text>
+          <!-- Audit List -->
+          <view class="card">
+            <view class="card-header">
+              <text class="card-title">待审核任务</text>
+              <text class="card-more">查看全部 →</text>
             </view>
             <view class="audit-list">
               <view class="audit-item" v-for="item in auditItems" :key="item.id">
@@ -32,37 +36,38 @@
                   <text class="audit-meta">{{ item.type }} · {{ item.time }}</text>
                 </view>
                 <view class="audit-actions">
-                  <view class="action-btn approve" @click.stop="approve(item)">
+                  <view class="btn approve" @click="approve(item)">
                     <text>通过</text>
                   </view>
-                  <view class="action-btn reject" @click.stop="reject(item)">
+                  <view class="btn reject" @click="reject(item)">
                     <text>拒绝</text>
                   </view>
                 </view>
               </view>
             </view>
           </view>
+        </view>
 
-          <view class="section-card">
-            <view class="section-header">
-              <text class="section-title">系统概览</text>
-            </view>
+        <view class="column">
+          <!-- Overview -->
+          <view class="card">
+            <text class="card-title">系统概览</text>
             <view class="overview-grid">
               <view class="overview-item">
-                <text class="overview-value">{{ stats ? stats.totalCalls : '0' }}</text>
-                <text class="overview-label">总调用次数</text>
+                <text class="overview-value">156</text>
+                <text class="overview-label">注册用户</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">{{ stats ? stats.totalAgents : '0' }}</text>
+                <text class="overview-value">28</text>
                 <text class="overview-label">Agent总数</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">{{ stats ? stats.activeUsers : '0' }}</text>
-                <text class="overview-label">活跃用户</text>
+                <text class="overview-value">45</text>
+                <text class="overview-label">技能总数</text>
               </view>
               <view class="overview-item">
-                <text class="overview-value">¥{{ stats ? stats.totalCost.toFixed(2) : '0.00' }}</text>
-                <text class="overview-label">总消耗</text>
+                <text class="overview-value">¥12,580</text>
+                <text class="overview-label">本月消耗</text>
               </view>
             </view>
           </view>
@@ -74,8 +79,6 @@
 
 <script setup lang="ts">
 import Layout from '@/components/Layout.vue'
-import { ref, onMounted } from 'vue'
-import { adminService } from '@/services/admin'
 
 const menuItems = [
   { icon: '👥', title: '用户管理', desc: '管理组织架构和账户', color: 'blue', path: '' },
@@ -85,26 +88,11 @@ const menuItems = [
   { icon: '⚙️', title: '系统设置', desc: '基础配置和参数调整', color: 'gray', path: '' }
 ]
 
-const auditItems = ref<{ id: string; title: string; type: string; time: string }[]>([])
-const stats = ref<any>(null)
-
-onMounted(async () => {
-  try {
-    const [statistics, logs] = await Promise.all([
-      adminService.getStatistics(),
-      adminService.getAuditLogs({ page: 1, size: 3 })
-    ])
-    stats.value = statistics
-    auditItems.value = (logs.list || []).map((log: any) => ({
-      id: log.id,
-      title: log.resource,
-      type: log.action,
-      time: log.timestamp ? new Date(log.timestamp).toLocaleString('zh-CN') : '-'
-    }))
-  } catch (e) {
-    console.error('Failed to load admin data:', e)
-  }
-})
+const auditItems = [
+  { id: '1', title: '车线管理Agent v2.0', type: 'Agent发布', time: '10分钟前' },
+  { id: '2', title: '发送短信技能', type: '技能更新', time: '1小时前' },
+  { id: '3', title: '时效洞察Agent', type: '配置变更', time: '2小时前' }
+]
 
 const handleMenuClick = (item: any) => {
   uni.showToast({ title: item.title, icon: 'none' })
@@ -121,119 +109,114 @@ const reject = (item: any) => {
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  background: #fff;
-  padding: 20px 32px;
-  border-bottom: 1px solid #e8e8e8;
+  margin-bottom: 24px;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
-.page-content {
-  padding: 24px 32px;
-}
-
-.admin-grid {
+.content-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
+  grid-template-columns: 1fr 400px;
+  gap: 24px;
 }
 
-.admin-card {
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.card {
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.card-more {
+  font-size: 13px;
+  color: #1890ff;
+  cursor: pointer;
+}
+
+/* Menu Grid */
+.menu-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.menu-card {
   display: flex;
   align-items: center;
   gap: 14px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
   cursor: pointer;
   transition: all 0.2s;
-  
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
+
+  &:hover { background: #e6f7ff; transform: translateY(-2px); }
 }
 
-.card-icon {
-  width: 48px;
-  height: 48px;
+.menu-icon {
+  width: 40px;
+  height: 40px;
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  
-  &.blue { background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%); }
-  &.purple { background: linear-gradient(135deg, #eef2ff 0%, #ddd6fe 100%); }
-  &.green { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
-  &.orange { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
-  &.gray { background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%); }
+  font-size: 20px;
+
+  &.blue { background: #e6f7ff; }
+  &.purple { background: #f9f0ff; }
+  &.green { background: #f6ffed; }
+  &.orange { background: #fff7e6; }
+  &.gray { background: #f5f5f5; }
 }
 
-.card-content {
+.menu-content {
   flex: 1;
 }
 
-.card-title {
-  font-size: 15px;
+.menu-title {
+  font-size: 14px;
   font-weight: 600;
-  color: #1f2937;
-  display: block;
+  color: #333;
 }
 
-.card-desc {
+.menu-desc {
   font-size: 12px;
-  color: #9ca3af;
-  margin-top: 2px;
+  color: #888;
+  margin-top: 4px;
   display: block;
 }
 
-.card-arrow {
-  font-size: 16px;
-  color: #d1d5db;
-}
-
-.admin-sections {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px;
-}
-
-.section-card {
-  background: #fff;
-  border-radius: 12px;
-  padding: 20px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.section-more {
-  font-size: 13px;
-  color: #4f46e5;
-  cursor: pointer;
-}
-
+/* Audit List */
 .audit-list {
   display: flex;
   flex-direction: column;
@@ -245,7 +228,7 @@ const reject = (item: any) => {
   justify-content: space-between;
   align-items: center;
   padding: 12px;
-  background: #f9fafb;
+  background: #f9f9f9;
   border-radius: 8px;
 }
 
@@ -257,12 +240,12 @@ const reject = (item: any) => {
 .audit-title {
   font-size: 14px;
   font-weight: 500;
-  color: #1f2937;
+  color: #333;
 }
 
 .audit-meta {
   font-size: 12px;
-  color: #9ca3af;
+  color: #999;
   margin-top: 2px;
 }
 
@@ -271,23 +254,18 @@ const reject = (item: any) => {
   gap: 8px;
 }
 
-.action-btn {
+.btn {
   padding: 6px 14px;
   border-radius: 6px;
   font-size: 13px;
   cursor: pointer;
-  
-  &.approve {
-    background: #10b981;
-    color: #fff;
-  }
-  
-  &.reject {
-    background: #f3f4f6;
-    color: #6b7280;
-  }
+  transition: all 0.2s;
+
+  &.approve { background: #52c41a; color: #fff; }
+  &.reject { background: #f5f5f5; color: #666; }
 }
 
+/* Overview */
 .overview-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -297,20 +275,20 @@ const reject = (item: any) => {
 .overview-item {
   text-align: center;
   padding: 16px;
-  background: #f9fafb;
+  background: #f9f9f9;
   border-radius: 8px;
 }
 
 .overview-value {
   font-size: 24px;
   font-weight: 700;
-  color: #4f46e5;
+  color: #1890ff;
   display: block;
 }
 
 .overview-label {
   font-size: 13px;
-  color: #9ca3af;
+  color: #888;
   margin-top: 4px;
   display: block;
 }

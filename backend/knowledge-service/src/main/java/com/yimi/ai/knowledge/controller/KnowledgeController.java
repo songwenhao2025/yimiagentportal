@@ -9,6 +9,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -27,7 +28,7 @@ public class KnowledgeController {
             @RequestParam(required = false) String keyword,
             @RequestParam(defaultValue = "1") int page,
             @RequestParam(defaultValue = "10") int size) {
-        
+
         PageResponse<DocumentResponse> response = knowledgeService.list(category, status, type, keyword, page, size);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
@@ -46,7 +47,7 @@ public class KnowledgeController {
 
     @PutMapping("/{id}")
     public ResponseEntity<ApiResponse<DocumentResponse>> update(
-            @PathVariable String id, 
+            @PathVariable String id,
             @Valid @RequestBody DocumentCreateRequest request) {
         DocumentResponse response = knowledgeService.update(id, request);
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -64,6 +65,18 @@ public class KnowledgeController {
             @RequestParam(defaultValue = "10") int limit) {
         List<DocumentResponse> response = knowledgeService.search(query, limit);
         return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<ApiResponse<DocumentResponse>> upload(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(required = false) String category) {
+        try {
+            DocumentResponse response = knowledgeService.uploadFile(file, category);
+            return ResponseEntity.ok(ApiResponse.success(response));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(ApiResponse.error(500, e.getMessage()));
+        }
     }
 
     @GetMapping("/categories")

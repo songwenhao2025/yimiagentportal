@@ -1,100 +1,71 @@
 <template>
   <Layout>
     <view class="page">
+      <!-- Header -->
       <view class="page-header">
-        <text class="page-title">Skills工作台</text>
+        <text class="page-title">技能管理</text>
         <view class="header-actions">
+          <view class="search-box">
+            <text class="search-icon">🔍</text>
+            <input class="search-input" type="text" v-model="searchQuery" placeholder="搜索技能..." />
+          </view>
           <view class="btn primary" @click="showCreateDialog = true">
             <text>+ 创建技能</text>
           </view>
         </view>
       </view>
 
-      <view class="page-content">
-        <view class="content-layout">
-          <view class="skills-list">
-            <view class="list-header">
-              <view class="search-box">
-                <text class="search-icon">🔍</text>
-                <input class="search-input" type="text" v-model="searchQuery" placeholder="搜索技能..." />
-              </view>
-              <view class="filter-tabs">
-                <view class="tab" :class="{ active: filterType === '' }" @click="filterType = ''">
-                  <text>全部</text>
-                </view>
-                <view class="tab" :class="{ active: filterType === 'api' }" @click="filterType = 'api'">
-                  <text>🌐 API</text>
-                </view>
-                <view class="tab" :class="{ active: filterType === 'function' }" @click="filterType = 'function'">
-                  <text>⚡ 函数</text>
-                </view>
-              </view>
+      <!-- Filters -->
+      <view class="filter-bar">
+        <view class="filter-chips">
+          <view class="chip" :class="{ active: filterType === '' }" @click="filterType = ''">
+            <text>全部</text>
+          </view>
+          <view class="chip" :class="{ active: filterType === 'api' }" @click="filterType = 'api'">
+            <text>🌐 API</text>
+          </view>
+          <view class="chip" :class="{ active: filterType === 'function' }" @click="filterType = 'function'">
+            <text>⚡ 函数</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- Skills Grid -->
+      <view class="skills-grid">
+        <view class="skill-card" v-for="skill in filteredSkills" :key="skill.id">
+          <view class="skill-header">
+            <view class="skill-type-badge" :class="skill.type">
+              <text>{{ skill.type === 'api' ? '🌐 API' : '⚡ 函数' }}</text>
             </view>
-
-            <view class="skills-grid">
-              <view class="skill-card" v-for="skill in filteredSkills" :key="skill.id">
-                <view class="skill-header">
-                  <view class="skill-type" :class="skill.type">
-                    <text>{{ skill.type === 'api' ? '🌐 API' : '⚡ 函数' }}</text>
-                  </view>
-                  <view class="skill-status" :class="skill.status">
-                    <text>{{ getStatusText(skill.status) }}</text>
-                  </view>
-                </view>
-
-                <text class="skill-name">{{ skill.name }}</text>
-                <text class="skill-desc">{{ skill.description }}</text>
-
-                <view class="skill-meta">
-                  <text class="meta-item">{{ skill.category }}</text>
-                  <text class="meta-item">v{{ skill.version }}</text>
-                  <text class="meta-item">{{ skill.usageCount }}次调用</text>
-                </view>
-
-                <view class="skill-actions">
-                  <view class="action-btn" @click="testSkill(skill)">
-                    <text>测试</text>
-                  </view>
-                  <view class="action-btn primary">
-                    <text>编辑</text>
-                  </view>
-                </view>
-              </view>
+            <view class="skill-status" :class="skill.status">
+              <text>{{ getStatusText(skill.status) }}</text>
             </view>
           </view>
-
-          <view class="skill-detail">
-            <view class="detail-header">
-              <text class="detail-title">技能详情</text>
+          <text class="skill-name">{{ skill.name }}</text>
+          <text class="skill-desc">{{ skill.description }}</text>
+          <view class="skill-meta">
+            <text class="meta-tag">{{ skill.category }}</text>
+            <text class="meta-tag">v{{ skill.version }}</text>
+            <text class="meta-tag">{{ skill.usageCount }}次</text>
+          </view>
+          <view class="skill-actions">
+            <view class="action-btn secondary">
+              <text>编辑</text>
             </view>
-            <view class="detail-content" v-if="selectedSkill">
-              <view class="detail-section">
-                <text class="section-label">接口定义</text>
-                <view class="code-block">
-                  <text class="code">{{ selectedSkill.apiEndpoint || 'cloud_function://' + selectedSkill.name.toLowerCase().replace(/\s/g, '_') }}</text>
-                </view>
-              </view>
-
-              <view class="detail-section">
-                <text class="section-label">参数说明</text>
-                <view class="param-list">
-                  <view class="param-item" v-for="param in selectedSkill.parameters" :key="param.name">
-                    <text class="param-name">{{ param.name }}</text>
-                    <text class="param-type">{{ param.type }}</text>
-                    <text class="param-required" v-if="param.required">必填</text>
-                    <text class="param-desc">{{ param.description }}</text>
-                  </view>
-                </view>
-              </view>
-            </view>
-            <view class="detail-empty" v-else>
-              <text>选择技能查看详情</text>
+            <view class="action-btn primary">
+              <text>详情</text>
             </view>
           </view>
         </view>
       </view>
 
-      <!-- 创建技能弹窗 -->
+      <!-- Empty -->
+      <view class="empty-state" v-if="filteredSkills.length === 0">
+        <text class="empty-icon">⚙️</text>
+        <text class="empty-text">暂无技能</text>
+      </view>
+
+      <!-- Create Dialog -->
       <view class="dialog-overlay" v-if="showCreateDialog">
         <view class="dialog-mask" @click="showCreateDialog = false"></view>
         <view class="dialog">
@@ -109,19 +80,19 @@
             </view>
             <view class="form-group">
               <text class="form-label">技能描述</text>
-              <textarea class="form-textarea" v-model="createFormData.description" placeholder="请描述技能功能" :maxlength="200" />
+              <textarea class="form-textarea" v-model="createFormData.description" placeholder="请描述技能功能" rows="3"></textarea>
             </view>
             <view class="form-row">
               <view class="form-group">
                 <text class="form-label">技能类型</text>
-                <picker class="form-picker" mode="selector" :range="skillTypes" range-key="label" :value="createTypeIndex" @change="onTypeChange">
-                  <view class="picker-value">{{ skillTypes[createTypeIndex].label }}</view>
+                <picker class="form-select" mode="selector" :range="skillTypes" range-key="label" :value="createTypeIndex" @change="onTypeChange">
+                  <view class="select-value">{{ skillTypes[createTypeIndex].label }}</view>
                 </picker>
               </view>
               <view class="form-group">
                 <text class="form-label">分类</text>
-                <picker class="form-picker" mode="selector" :range="skillCategories" range-key="label" :value="createCategoryIndex" @change="onCategoryChange">
-                  <view class="picker-value">{{ skillCategories[createCategoryIndex].label }}</view>
+                <picker class="form-select" mode="selector" :range="skillCategories" range-key="label" :value="createCategoryIndex" @change="onCategoryChange">
+                  <view class="select-value">{{ skillCategories[createCategoryIndex].label }}</view>
                 </picker>
               </view>
             </view>
@@ -158,7 +129,6 @@ import type { Skill } from '@/data/skills'
 
 const searchQuery = ref('')
 const filterType = ref('')
-const selectedSkill = ref<Skill | null>(null)
 const skills = ref<Skill[]>([])
 const loading = ref(true)
 const showCreateDialog = ref(false)
@@ -170,8 +140,18 @@ const skillCategories = [
   { label: '财务', value: '财务' },
   { label: '质控', value: '质控' }
 ]
+
 const createTypeIndex = ref(0)
 const createCategoryIndex = ref(0)
+
+const createFormData = ref({
+  name: '',
+  description: '',
+  type: 'api' as 'api' | 'function',
+  category: '物流',
+  timeout: 30,
+  apiEndpoint: ''
+})
 
 const onTypeChange = (e: any) => {
   createTypeIndex.value = e.detail.value
@@ -183,45 +163,33 @@ const onCategoryChange = (e: any) => {
   createFormData.value.category = skillCategories[e.detail.value].value
 }
 
-const createFormData = ref({
-  name: '',
-  description: '',
-  type: 'api' as 'api' | 'function',
-  category: '物流',
-  timeout: 30,
-  apiEndpoint: ''
-})
-
 const filteredSkills = computed(() => {
   let result = [...skills.value]
-
   if (searchQuery.value) {
     const query = searchQuery.value.toLowerCase()
-    result = result.filter(s =>
-      s.name.toLowerCase().includes(query) ||
-      s.description.toLowerCase().includes(query)
-    )
+    result = result.filter(s => s.name.toLowerCase().includes(query) || s.description.toLowerCase().includes(query))
   }
-
   if (filterType.value) {
     result = result.filter(s => s.type === filterType.value)
   }
-
   return result
 })
 
 const getStatusText = (status: string) => {
-  const texts: Record<string, string> = {
-    active: '已发布',
-    draft: '草稿',
-    deprecated: '已废弃'
-  }
-  return texts[status] || status
+  const map: Record<string, string> = { published: '已发布', draft: '草稿', review: '审核中' }
+  return map[status] || status
 }
 
-const testSkill = (skill: Skill) => {
-  selectedSkill.value = skill
-  uni.showToast({ title: `测试: ${skill.name}`, icon: 'none' })
+const loadSkills = async () => {
+  loading.value = true
+  try {
+    const res = await skillService.list({ page: 1, size: 100 })
+    skills.value = res.list || []
+  } catch (error) {
+    console.error(error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const createSkill = async () => {
@@ -233,32 +201,10 @@ const createSkill = async () => {
     await skillService.create(createFormData.value as any)
     uni.showToast({ title: '创建成功', icon: 'success' })
     showCreateDialog.value = false
-    createFormData.value = {
-      name: '',
-      description: '',
-      type: 'api',
-      category: '物流',
-      timeout: 30,
-      apiEndpoint: ''
-    }
+    createFormData.value = { name: '', description: '', type: 'api', category: '物流', timeout: 30, apiEndpoint: '' }
     loadSkills()
   } catch (error) {
-    console.error('Failed to create skill:', error)
-  }
-}
-
-const loadSkills = async () => {
-  loading.value = true
-  try {
-    const params: any = {}
-    if (searchQuery.value) params.keyword = searchQuery.value
-    if (filterType.value) params.type = filterType.value
-    const response = await skillService.list(params)
-    skills.value = response.list || []
-  } catch (error) {
-    console.error('Failed to load skills:', error)
-  } finally {
-    loading.value = false
+    console.error(error)
   }
 }
 
@@ -269,117 +215,94 @@ onMounted(() => {
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  background: #fff;
-  padding: 20px 32px;
-  border-bottom: 1px solid #e8e8e8;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
 .header-actions {
   display: flex;
-  gap: 12px;
-}
-
-.btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-
-  &.primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #fff;
-  }
-}
-
-.page-content {
-  padding: 24px 32px;
-}
-
-.content-layout {
-  display: flex;
-  gap: 24px;
-}
-
-.skills-list {
-  flex: 1;
-}
-
-.list-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 20px;
   gap: 16px;
+  align-items: center;
 }
 
 .search-box {
   display: flex;
   align-items: center;
   background: #fff;
-  border-radius: 8px;
-  padding: 10px 16px;
-  flex: 1;
-  max-width: 300px;
+  border: 1px solid #d9d9d9;
+  border-radius: 24px;
+  padding: 8px 16px;
+  width: 240px;
+
+  &:focus-within { border-color: #1890ff; }
 }
 
-.search-icon {
-  margin-right: 10px;
-}
+.search-icon { margin-right: 8px; }
+.search-input { flex: 1; font-size: 14px; background: transparent; &::placeholder { color: #999; } }
 
-.search-input {
-  flex: 1;
+.btn {
+  padding: 8px 20px;
+  border-radius: 24px;
   font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.primary { background: #1890ff; color: #fff; &:hover { background: #40a9ff; } }
+  &.secondary { background: #fff; border: 1px solid #d9d9d9; color: #666; &:hover { border-color: #1890ff; color: #1890ff; } }
 }
 
-.filter-tabs {
+.filter-bar {
+  margin-bottom: 24px;
+  display: flex;
+  gap: 16px;
+}
+
+.filter-chips {
   display: flex;
   gap: 8px;
 }
 
-.tab {
-  padding: 8px 16px;
+.chip {
+  padding: 6px 14px;
+  border-radius: 16px;
   background: #fff;
-  border-radius: 6px;
+  border: 1px solid #d9d9d9;
   cursor: pointer;
 
-  text {
-    font-size: 13px;
-    color: #6b7280;
-  }
+  text { font-size: 13px; color: #666; }
 
-  &.active {
-    background: #4f46e5;
+  &:hover { border-color: #1890ff; }
 
-    text {
-      color: #fff;
-    }
-  }
+  &.active { background: #1890ff; border-color: #1890ff; text { color: #fff; } }
 }
 
 .skills-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
 }
 
 .skill-card {
   background: #fff;
   border-radius: 12px;
   padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s;
+
+  &:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08); }
 }
 
 .skill-header {
@@ -388,221 +311,87 @@ onMounted(() => {
   margin-bottom: 12px;
 }
 
-.skill-type {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+.skill-type-badge {
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
 
-  &.api {
-    background: #dbeafe;
-    color: #1d4ed8;
-  }
-
-  &.function {
-    background: #fef3c7;
-    color: #b45309;
-  }
+  &.api { background: #e6f7ff; color: #1890ff; }
+  &.function { background: #f6ffed; color: #52c41a; }
 }
 
 .skill-status {
-  padding: 4px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 11px;
 
-  &.active {
-    background: #d1fae5;
-    color: #065f46;
-  }
-
-  &.draft {
-    background: #f3f4f6;
-    color: #6b7280;
-  }
+  &.published { background: #f6ffed; color: #52c41a; }
+  &.draft { background: #f5f5f5; color: #999; }
+  &.review { background: #fffbe6; color: #faad14; }
 }
 
-.skill-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-  display: block;
-  margin-bottom: 6px;
-}
-
-.skill-desc {
-  font-size: 13px;
-  color: #6b7280;
-  display: block;
-  margin-bottom: 12px;
-  line-height: 1.5;
-}
+.skill-name { font-size: 16px; font-weight: 600; color: #1a1a1a; margin-bottom: 8px; }
+.skill-desc { font-size: 13px; color: #888; line-height: 1.5; margin-bottom: 12px; display: block; }
 
 .skill-meta {
   display: flex;
-  gap: 12px;
+  gap: 8px;
   margin-bottom: 16px;
+}
 
-  .meta-item {
-    font-size: 12px;
-    color: #9ca3af;
-
-    &::before {
-      content: '·';
-      margin-right: 12px;
-    }
-
-    &:first-child::before {
-      content: '';
-      margin-right: 0;
-    }
-  }
+.meta-tag {
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: #f0f2f5;
+  font-size: 11px;
+  color: #666;
 }
 
 .skill-actions {
   display: flex;
   gap: 8px;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 12px;
 }
 
 .action-btn {
   flex: 1;
   padding: 8px;
-  background: #f3f4f6;
   border-radius: 6px;
   text-align: center;
+  font-size: 13px;
+  cursor: pointer;
 
-  text {
-    font-size: 13px;
-    color: #6b7280;
-  }
-
-  &.primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-
-    text {
-      color: #fff;
-    }
-  }
+  &.primary { background: #1890ff; color: #fff; }
+  &.secondary { background: #f5f5f5; color: #666; }
 }
 
-.skill-detail {
-  width: 400px;
-  flex-shrink: 0;
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px;
   background: #fff;
   border-radius: 12px;
 }
 
-.detail-header {
-  padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
-}
+.empty-icon { font-size: 48px; opacity: 0.5; margin-bottom: 12px; }
+.empty-text { font-size: 16px; color: #888; }
 
-.detail-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.detail-content {
-  padding: 20px;
-}
-
-.detail-section {
-  margin-bottom: 20px;
-}
-
-.section-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-  display: block;
-  margin-bottom: 10px;
-}
-
-.code-block {
-  background: #1f2937;
-  border-radius: 8px;
-  padding: 14px;
-
-  .code {
-    font-family: 'Monaco', 'Menlo', monospace;
-    font-size: 13px;
-    color: #10b981;
-  }
-}
-
-.param-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.param-item {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.param-name {
-  font-size: 13px;
-  font-weight: 500;
-  color: #4f46e5;
-  font-family: 'Monaco', 'Menlo', monospace;
-}
-
-.param-type {
-  font-size: 12px;
-  color: #6b7280;
-  background: #e5e7eb;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.param-required {
-  font-size: 11px;
-  color: #dc2626;
-  background: #fee2e2;
-  padding: 2px 6px;
-  border-radius: 4px;
-}
-
-.param-desc {
-  font-size: 12px;
-  color: #9ca3af;
-  flex: 1;
-}
-
-.detail-empty {
-  padding: 60px 20px;
-  text-align: center;
-
-  text {
-    font-size: 14px;
-    color: #9ca3af;
-  }
-}
-
+/* Dialog */
 .dialog-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 1000;
 }
 
 .dialog-mask {
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
-  z-index: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.45);
 }
 
 .dialog {
@@ -618,102 +407,51 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 16px 20px;
-  border-bottom: 1px solid #e8e8e8;
+  padding: 16px 24px;
+  border-bottom: 1px solid #f0f0f0;
 }
 
-.dialog-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1f2937;
-}
+.dialog-title { font-size: 16px; font-weight: 600; color: #1a1a1a; }
+.dialog-close { font-size: 24px; color: #999; cursor: pointer; }
 
-.dialog-close {
-  font-size: 24px;
-  color: #6b7280;
-  cursor: pointer;
+.dialog-body { padding: 24px; }
 
-  &:hover {
-    color: #1f2937;
-  }
-}
+.form-group { margin-bottom: 16px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 
-.dialog-body {
-  padding: 20px;
-}
+.form-label { font-size: 14px; font-weight: 500; color: #333; margin-bottom: 8px; display: block; }
+.required { color: #ff4d4f; }
 
-.form-row {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 16px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.form-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.required {
-  color: #ef4444;
-}
-
-.form-input, .form-picker, .form-textarea {
-  padding: 10px 14px;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
+.form-input, .form-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
   font-size: 14px;
   background: #fff;
 
-  &:focus {
-    outline: none;
-    border-color: #4f46e5;
-  }
+  &:focus { border-color: #1890ff; outline: none; }
 }
 
-.form-textarea {
-  resize: vertical;
-  min-height: 80px;
+.form-textarea { resize: vertical; min-height: 80px; }
+
+.form-select {
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  background: #fff;
 }
 
-.form-picker {
-  cursor: pointer;
-}
-
-.picker-value {
-  color: #1f2937;
+.select-value {
+  padding: 8px 12px;
+  font-size: 14px;
+  color: #333;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 16px 20px;
-  border-top: 1px solid #e8e8e8;
-}
-
-.btn {
-  padding: 10px 20px;
-  border-radius: 8px;
-  font-size: 14px;
-  cursor: pointer;
-
-  &.primary {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    color: #fff;
-  }
-
-  &.secondary {
-    background: #f3f4f6;
-    color: #6b7280;
-    border: 1px solid #e5e7eb;
-  }
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
 }
 </style>

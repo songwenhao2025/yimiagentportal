@@ -1,40 +1,37 @@
 <template>
   <view class="layout">
-    <view class="sidebar" :class="{ collapsed: sidebarCollapsed }">
+    <view class="sidebar">
       <view class="sidebar-header">
         <view class="logo">
           <text class="logo-icon">🤖</text>
-          <text class="logo-text" v-if="!sidebarCollapsed">壹米AI</text>
-        </view>
-        <view class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
-          <text>{{ sidebarCollapsed ? '→' : '←' }}</text>
+          <text class="logo-text">壹米AI</text>
         </view>
       </view>
-      
+
       <view class="nav-menu">
-        <view 
-          class="nav-item" 
-          v-for="item in menuItems" 
+        <view
+          class="nav-item"
+          v-for="item in menuItems"
           :key="item.path"
           :class="{ active: currentPath === item.path }"
           @click="navigateTo(item.path)"
         >
           <text class="nav-icon">{{ item.icon }}</text>
-          <text class="nav-text" v-if="!sidebarCollapsed">{{ item.name }}</text>
+          <text class="nav-text">{{ item.name }}</text>
         </view>
       </view>
-      
+
       <view class="sidebar-footer">
         <view class="user-info">
           <view class="user-avatar">👤</view>
-          <view class="user-detail" v-if="!sidebarCollapsed">
+          <view class="user-detail">
             <text class="user-name">张主管</text>
             <text class="user-role">管理员</text>
           </view>
         </view>
       </view>
     </view>
-    
+
     <view class="main-content">
       <slot></slot>
     </view>
@@ -44,7 +41,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 
-const sidebarCollapsed = ref(false)
 const currentPath = ref('/pages/index/index')
 
 const menuItems = [
@@ -77,110 +73,73 @@ onMounted(() => {
 .layout {
   display: flex;
   min-height: 100vh;
-  background: #f0f2f5;
+  background: #f5f7fa;
 }
 
 .sidebar {
   width: 240px;
-  background: #1a1a2e;
+  background: #ffffff;
   display: flex;
   flex-direction: column;
-  transition: width 0.3s;
   position: fixed;
   left: 0;
   top: 0;
   bottom: 0;
   z-index: 100;
-  
-  &.collapsed {
-    width: 72px;
-    
-    .sidebar-header {
-      padding: 16px 12px;
-    }
-    
-    .logo {
-      justify-content: center;
-    }
-    
-    .nav-item {
-      padding: 12px;
-      justify-content: center;
-    }
-    
-    .user-info {
-      justify-content: center;
-    }
-  }
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.05);
 }
 
 .sidebar-header {
-  padding: 24px 20px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 64px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: center;
+  border-bottom: 1px solid #f0f0f0;
 }
 
 .logo {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
 }
 
 .logo-icon {
-  font-size: 32px;
+  font-size: 24px;
 }
 
 .logo-text {
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
-  color: #fff;
-}
-
-.collapse-btn {
-  width: 28px;
-  height: 28px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  
-  text {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.7);
-  }
-  
-  &:hover {
-    background: rgba(255, 255, 255, 0.2);
-  }
+  color: #1a1a1a;
+  letter-spacing: 1px;
 }
 
 .nav-menu {
   flex: 1;
-  padding: 16px 12px;
+  padding: 12px 0;
   overflow-y: auto;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 14px 16px;
+  height: 48px;
+  padding: 0 24px;
+  margin: 4px 12px;
   border-radius: 8px;
-  margin-bottom: 4px;
   cursor: pointer;
-  transition: all 0.2s;
-  
+  transition: all 0.3s ease;
+
   &:hover {
-    background: rgba(255, 255, 255, 0.1);
+    color: #1890ff;
+    background-color: #e6f7ff;
   }
-  
+
   &.active {
-    background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-    
+    color: #fff;
+    background: linear-gradient(90deg, #1890ff, #096dd9);
+    box-shadow: 0 2px 6px rgba(24, 144, 255, 0.3);
+
     .nav-icon, .nav-text {
       color: #fff;
     }
@@ -188,17 +147,22 @@ onMounted(() => {
 }
 
 .nav-icon {
-  font-size: 20px;
+  font-size: 18px;
+  margin-right: 12px;
+  width: 20px;
+  text-align: center;
+  color: #666;
 }
 
 .nav-text {
-  font-size: 15px;
-  color: rgba(255, 255, 255, 0.7);
+  font-size: 14px;
+  color: #666;
+  font-weight: 500;
 }
 
 .sidebar-footer {
-  padding: 16px 20px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 16px 24px;
+  border-top: 1px solid #f0f0f0;
 }
 
 .user-info {
@@ -208,14 +172,14 @@ onMounted(() => {
 }
 
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.1);
+  background: #f0f2f5;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
+  font-size: 16px;
 }
 
 .user-detail {
@@ -224,24 +188,60 @@ onMounted(() => {
 }
 
 .user-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 600;
-  color: #fff;
+  color: #333;
 }
 
 .user-role {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.5);
+  font-size: 11px;
+  color: #999;
 }
 
 .main-content {
   flex: 1;
   margin-left: 240px;
   min-height: 100vh;
-  transition: margin-left 0.3s;
+  padding: 24px;
 }
 
-.sidebar.collapsed + .main-content {
-  margin-left: 72px;
+.card {
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  &.primary {
+    background: #1890ff;
+    color: #fff;
+
+    &:hover {
+      background: #40a9ff;
+    }
+  }
+
+  &.secondary {
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    color: #666;
+
+    &:hover {
+      border-color: #1890ff;
+      color: #1890ff;
+    }
+  }
 }
 </style>

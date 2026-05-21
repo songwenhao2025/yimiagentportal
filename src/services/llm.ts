@@ -140,3 +140,13 @@ export async function extractKeywords(text: string, count: number = 10): Promise
   const response = await http.post('/api/llm/keywords', undefined, { params: { text, count } });
   return response;
 }
+
+export const llmService = {
+  chat,
+  generateSkill,
+  generateWorkflow,
+  knowledgeQA,
+  analyzeLogs,
+  summarize,
+  extractKeywords
+};

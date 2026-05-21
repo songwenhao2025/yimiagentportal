@@ -116,7 +116,7 @@ public class AgentService {
         Agent agent = agentRepository.findById(id)
                 .orElseThrow(() -> new BusinessException(404, "Agent不存在"));
 
-        if (agent.getStatus() != AgentStatus.ONLINE) {
+        if (agent.getStatus() == AgentStatus.OFFLINE) {
             throw new BusinessException(503, "Agent当前不可用");
         }
 

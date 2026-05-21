@@ -1,124 +1,120 @@
 <template>
   <Layout>
     <view class="page">
+      <!-- Header -->
       <view class="page-header">
-        <view class="header-content">
-          <text class="page-title">监控分析</text>
-          <view class="time-range">
-            <view 
-              class="range-item" 
-              :class="{ active: timeRange === '7d' }"
-              @click="timeRange = '7d'"
-            >
-              <text>7天</text>
-            </view>
-            <view 
-              class="range-item" 
-              :class="{ active: timeRange === '30d' }"
-              @click="timeRange = '30d'"
-            >
-              <text>30天</text>
-            </view>
-            <view 
-              class="range-item" 
-              :class="{ active: timeRange === '90d' }"
-              @click="timeRange = '90d'"
-            >
-              <text>90天</text>
-            </view>
+        <text class="page-title">监控分析</text>
+        <view class="time-range">
+          <view class="range-chip" :class="{ active: timeRange === '7d' }" @click="timeRange = '7d'">
+            <text>7天</text>
+          </view>
+          <view class="range-chip" :class="{ active: timeRange === '30d' }" @click="timeRange = '30d'">
+            <text>30天</text>
+          </view>
+          <view class="range-chip" :class="{ active: timeRange === '90d' }" @click="timeRange = '90d'">
+            <text>90天</text>
           </view>
         </view>
       </view>
 
-      <view class="page-content">
-        <view class="stats-grid">
-          <StatCard icon="📊" :value="totalCallsFormatted" label="总调用次数" :trend="12" color="primary" v-if="stats" />
-          <StatCard icon="📊" value="0" label="总调用次数" :trend="12" color="primary" v-else />
-          <StatCard icon="✅" :value="stats ? stats.totalAgents + '个' : '0'" label="Agent数量" :trend="2" color="success" />
-          <StatCard icon="💰" :value="stats ? '¥' + stats.totalCost.toFixed(2) : '¥0'" label="总费用" :trend="8" color="warning" />
-          <StatCard icon="👥" :value="stats ? stats.activeUsers + '人' : '0'" label="活跃用户" :trend="5" color="info" />
+      <!-- Stats -->
+      <view class="stats-grid">
+        <view class="stat-card">
+          <view class="stat-icon primary">📊</view>
+          <view class="stat-info">
+            <text class="stat-value">{{ totalCallsFormatted }}</text>
+            <text class="stat-label">总调用次数</text>
+          </view>
         </view>
+        <view class="stat-card">
+          <view class="stat-icon success">✅</view>
+          <view class="stat-info">
+            <text class="stat-value">{{ stats ? stats.totalAgents : '0' }}个</text>
+            <text class="stat-label">Agent数量</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-icon info">👥</view>
+          <view class="stat-info">
+            <text class="stat-value">{{ stats ? stats.activeUsers : '0' }}人</text>
+            <text class="stat-label">活跃用户</text>
+          </view>
+        </view>
+        <view class="stat-card">
+          <view class="stat-icon warning">💰</view>
+          <view class="stat-info">
+            <text class="stat-value">¥{{ stats ? stats.totalCost.toFixed(2) : '0.00' }}</text>
+            <text class="stat-label">总费用</text>
+          </view>
+        </view>
+      </view>
 
-        <view class="main-grid">
-          <view class="left-column">
-            <view class="section-card">
-              <view class="section-header">
-                <text class="section-title">调用趋势</text>
-              </view>
-              <view class="chart-container">
-                <view class="chart-bar">
-                  <view class="bar" v-for="(val, idx) in chartData" :key="idx" :style="{ height: val + '%' }">
-                    <text class="bar-value">{{ val }}</text>
-                  </view>
-                </view>
-                <view class="chart-labels">
-                  <text v-for="(label, idx) in chartLabels" :key="idx">{{ label }}</text>
-                </view>
-              </view>
-            </view>
-
-            <view class="section-card">
-              <view class="section-header">
-                <text class="section-title">用户满意度</text>
-              </view>
-              <view class="satisfaction-content">
-                <view class="score-circle">
-                  <text class="score-value">4.8</text>
-                  <text class="score-label">平均分</text>
-                </view>
-                <view class="rating-dist">
-                  <view class="dist-item" v-for="i in 5" :key="i">
-                    <text class="dist-label">{{ i }}星</text>
-                    <view class="dist-bar">
-                      <view class="dist-fill" :style="{ width: ratingData[5 - i] + '%' }"></view>
-                    </view>
-                    <text class="dist-value">{{ ratingData[5 - i] }}%</text>
-                  </view>
+      <!-- Content -->
+      <view class="content-grid">
+        <!-- Left: Charts -->
+        <view class="column">
+          <view class="card">
+            <text class="card-title">调用趋势</text>
+            <view class="chart-box">
+              <view class="chart-bars">
+                <view class="bar-item" v-for="(val, idx) in chartData" :key="idx">
+                  <view class="bar" :style="{ height: val * 2 + 'px' }"></view>
+                  <text class="bar-label">{{ chartLabels[idx] }}</text>
                 </view>
               </view>
             </view>
           </view>
 
-          <view class="right-column">
-            <view class="section-card">
-              <view class="section-header">
-                <text class="section-title">热门Agent排行</text>
+          <view class="card">
+            <text class="card-title">用户满意度</text>
+            <view class="satisfaction-box">
+              <view class="score-ring">
+                <text class="score-value">4.8</text>
+                <text class="score-label">平均分</text>
               </view>
-              <view class="ranking-list">
-                <view class="ranking-item" v-for="(item, idx) in agentRanking" :key="item.name">
-                  <view class="rank-badge" :class="getRankClass(idx)">
-                    <text>{{ idx + 1 }}</text>
+              <view class="rating-bars">
+                <view class="rating-item" v-for="i in 5" :key="i">
+                  <text class="rating-label">{{ i }}星</text>
+                  <view class="rating-track">
+                    <view class="rating-fill" :style="{ width: ratingData[5 - i] + '%' }"></view>
                   </view>
-                  <view class="rank-info">
-                    <text class="rank-name">{{ item.name }}</text>
-                    <text class="rank-desc">{{ item.department }}</text>
-                  </view>
-                  <view class="rank-value">
-                    <text>{{ item.count }}</text>
-                    <text class="rank-unit">次</text>
-                  </view>
+                  <text class="rating-pct">{{ ratingData[5 - i] }}%</text>
                 </view>
               </view>
             </view>
+          </view>
+        </view>
 
-            <view class="section-card">
-              <view class="section-header">
-                <text class="section-title">热门技能排行</text>
-              </view>
-              <view class="ranking-list">
-                <view class="ranking-item" v-for="(item, idx) in skillRanking" :key="item.name">
-                  <view class="rank-badge" :class="getRankClass(idx)">
-                    <text>{{ idx + 1 }}</text>
-                  </view>
-                  <view class="rank-info">
-                    <text class="rank-name">{{ item.name }}</text>
-                    <text class="rank-desc">{{ item.category }}</text>
-                  </view>
-                  <view class="rank-value">
-                    <text>{{ item.count }}</text>
-                    <text class="rank-unit">次</text>
-                  </view>
+        <!-- Right: Rankings -->
+        <view class="column">
+          <view class="card">
+            <text class="card-title">热门Agent排行</text>
+            <view class="rank-list">
+              <view class="rank-item" v-for="(item, idx) in agentRanking" :key="item.name">
+                <view class="rank-badge" :class="getRankClass(idx)">
+                  <text>{{ idx + 1 }}</text>
                 </view>
+                <view class="rank-info">
+                  <text class="rank-name">{{ item.name }}</text>
+                  <text class="rank-desc">{{ item.department }}</text>
+                </view>
+                <text class="rank-val">{{ item.count }}次</text>
+              </view>
+            </view>
+          </view>
+
+          <view class="card">
+            <text class="card-title">热门技能排行</text>
+            <view class="rank-list">
+              <view class="rank-item" v-for="(item, idx) in skillRanking" :key="item.name">
+                <view class="rank-badge" :class="getRankClass(idx)">
+                  <text>{{ idx + 1 }}</text>
+                </view>
+                <view class="rank-info">
+                  <text class="rank-name">{{ item.name }}</text>
+                  <text class="rank-desc">{{ item.category }}</text>
+                </view>
+                <text class="rank-val">{{ item.count }}次</text>
               </view>
             </view>
           </view>
@@ -129,22 +125,19 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import Layout from '@/components/Layout.vue'
-import StatCard from '@/components/StatCard.vue'
 import { adminService } from '@/services/admin'
 
 const timeRange = ref('7d')
 const stats = ref<any>(null)
 const loading = ref(true)
 
-const chartData = [45, 68, 52, 89, 73, 95, 82]
+const chartData = ref<number[]>([45, 68, 52, 89, 73, 95, 82])
 const chartLabels = ['周一', '周二', '周三', '周四', '周五', '周六', '周日']
 
 const agentRanking = ref<{ name: string; department: string; count: number }[]>([])
-
 const skillRanking = ref<{ name: string; category: string; count: number }[]>([])
-
 const ratingData = [45, 32, 15, 6, 2]
 
 const getRankClass = (idx: number) => {
@@ -159,78 +152,72 @@ const totalCallsFormatted = computed(() => {
   return stats.value.totalCalls.toLocaleString()
 })
 
-onMounted(async () => {
+const loadDashboard = async () => {
   loading.value = true
   try {
-    const res = await adminService.getStatistics()
-    stats.value = res
+    const days = timeRange.value === '7d' ? 7 : timeRange.value === '30d' ? 30 : 90
+    const [statistics, trends, agents, skills] = await Promise.all([
+      adminService.getStatistics(),
+      adminService.getCallTrends(days),
+      adminService.getAgentRanking(5),
+      adminService.getSkillRanking(5)
+    ])
+    stats.value = statistics
+    chartData.value = trends.length > 0 ? trends : Array(days).fill(0)
+    agentRanking.value = agents || []
+    skillRanking.value = skills || []
   } catch (e) {
-    console.error('Failed to load statistics:', e)
+    console.error('Failed to load dashboard:', e)
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => { loadDashboard() })
+watch(timeRange, () => { loadDashboard() })
 </script>
 
 <style lang="scss">
 .page {
-  min-height: 100vh;
-  background: #f0f2f5;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .page-header {
-  background: #fff;
-  padding: 20px 32px;
-  border-bottom: 1px solid #e8e8e8;
-}
-
-.header-content {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 24px;
 }
 
 .page-title {
   font-size: 24px;
   font-weight: 700;
-  color: #1f2937;
+  color: #1a1a1a;
 }
 
 .time-range {
   display: flex;
-  gap: 12px;
+  gap: 8px;
 }
 
-.range-item {
-  padding: 10px 20px;
-  background: #f3f4f6;
-  border-radius: 8px;
+.range-chip {
+  padding: 6px 16px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
   cursor: pointer;
-  transition: all 0.2s;
-  
-  text {
-    font-size: 14px;
-    color: #6b7280;
-  }
-  
-  &:hover {
-    background: #e5e7eb;
-  }
-  
+
+  text { font-size: 13px; color: #666; }
+
   &.active {
-    background: #eef2ff;
-    
-    text {
-      color: #4f46e5;
-      font-weight: 600;
-    }
+    background: #1890ff;
+    border-color: #1890ff;
+    text { color: #fff; }
   }
 }
 
-.page-content {
-  padding: 24px 32px;
-}
-
+/* Stats */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -238,236 +225,197 @@ onMounted(async () => {
   margin-bottom: 24px;
 }
 
-.main-grid {
+.stat-card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+
+  &.primary { background: #e6f7ff; }
+  &.success { background: #f6ffed; }
+  &.info { background: #e6fffb; }
+  &.warning { background: #fffbe6; }
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.stat-label {
+  font-size: 13px;
+  color: #888;
+  margin-top: 4px;
+}
+
+/* Content */
+.content-grid {
   display: grid;
   grid-template-columns: 1fr 400px;
   gap: 24px;
 }
 
-.left-column {
+.column {
   display: flex;
   flex-direction: column;
   gap: 24px;
 }
 
-.right-column {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.section-card {
+.card {
   background: #fff;
   border-radius: 12px;
-  padding: 20px;
+  padding: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
-.section-header {
-  margin-bottom: 20px;
-}
-
-.section-title {
+.card-title {
   font-size: 16px;
   font-weight: 600;
-  color: #1f2937;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+  display: block;
 }
 
-.chart-container {
-  margin-top: 20px;
-}
-
-.chart-bar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
+/* Charts */
+.chart-box {
   height: 200px;
-  padding-top: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.chart-bars {
+  display: flex;
+  justify-content: space-around;
+  width: 100%;
+  height: 100%;
+  align-items: flex-end;
+}
+
+.bar-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
 }
 
 .bar {
-  width: 12%;
-  background: linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%);
-  border-radius: 8px 8px 0 0;
-  position: relative;
-  transition: height 0.3s;
-  
-  &:hover {
-    background: linear-gradient(180deg, #3730a3 0%, #6d28d9 100%);
-  }
+  width: 24px;
+  background: linear-gradient(to top, #1890ff, #69c0ff);
+  border-radius: 4px 4px 0 0;
+  transition: height 0.5s;
 }
 
-.bar-value {
-  position: absolute;
-  top: -36px;
-  left: 50%;
-  transform: translateX(-50%);
+.bar-label {
   font-size: 12px;
-  color: #6b7280;
+  color: #999;
 }
 
-.chart-labels {
-  display: flex;
-  justify-content: space-between;
-  margin-top: 16px;
-  
-  text {
-    font-size: 13px;
-    color: #9ca3af;
-  }
-}
-
-.satisfaction-content {
+/* Satisfaction */
+.satisfaction-box {
   display: flex;
   gap: 32px;
-  margin-top: 20px;
 }
 
-.score-circle {
-  width: 140px;
-  height: 140px;
+.score-ring {
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  background: linear-gradient(135deg, #1890ff, #096dd9);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  flex-shrink: 0;
-}
-
-.score-value {
-  font-size: 40px;
-  font-weight: 700;
   color: #fff;
 }
 
-.score-label {
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.8);
-}
+.score-value { font-size: 36px; font-weight: 700; }
+.score-label { font-size: 12px; opacity: 0.8; }
 
-.rating-dist {
-  flex: 1;
-}
-
-.dist-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
-  
-  &:last-child {
-    margin-bottom: 0;
-  }
-}
-
-.dist-label {
-  width: 50px;
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.dist-bar {
-  flex: 1;
-  height: 12px;
-  background: #f3f4f6;
-  border-radius: 6px;
-  overflow: hidden;
-}
-
-.dist-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%);
-  border-radius: 6px;
-  transition: width 0.5s;
-}
-
-.dist-value {
-  width: 60px;
-  font-size: 13px;
-  color: #6b7280;
-  text-align: right;
-}
-
-.ranking-list {
-  margin-top: 16px;
-}
-
-.ranking-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px 0;
-  border-bottom: 1px solid #f3f4f6;
-  
-  &:last-child {
-    border-bottom: none;
-  }
-}
-
-.rank-badge {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  
-  text {
-    font-size: 14px;
-    font-weight: 600;
-    color: #6b7280;
-  }
-  
-  &.gold {
-    background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-    text { color: #fff; }
-  }
-  
-  &.silver {
-    background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
-    text { color: #fff; }
-  }
-  
-  &.bronze {
-    background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
-    text { color: #fff; }
-  }
-}
-
-.rank-info {
+.rating-bars {
   flex: 1;
   display: flex;
   flex-direction: column;
+  gap: 12px;
+  justify-content: center;
 }
 
-.rank-name {
-  font-size: 14px;
-  font-weight: 500;
-  color: #1f2937;
-}
-
-.rank-desc {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-top: 4px;
-}
-
-.rank-value {
+.rating-item {
   display: flex;
-  align-items: baseline;
-  
-  text {
-    font-size: 16px;
-    font-weight: 600;
-    color: #4f46e5;
-  }
+  align-items: center;
+  gap: 12px;
 }
 
-.rank-unit {
-  font-size: 12px;
-  color: #9ca3af;
-  margin-left: 4px;
+.rating-label { width: 30px; font-size: 13px; color: #666; text-align: right; }
+
+.rating-track {
+  flex: 1;
+  height: 8px;
+  background: #f5f5f5;
+  border-radius: 4px;
+  overflow: hidden;
 }
+
+.rating-fill {
+  height: 100%;
+  background: #1890ff;
+  border-radius: 4px;
+  transition: width 0.5s;
+}
+
+.rating-pct { width: 40px; font-size: 13px; color: #666; }
+
+/* Rankings */
+.rank-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rank-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.rank-badge {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #e6e8eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  text { font-size: 12px; font-weight: 600; color: #666; }
+
+  &.gold { background: #ffd700; text { color: #fff; } }
+  &.silver { background: #c0c0c0; text { color: #fff; } }
+  &.bronze { background: #cd7f32; text { color: #fff; } }
+}
+
+.rank-info { flex: 1; }
+.rank-name { font-size: 14px; font-weight: 500; color: #333; }
+.rank-desc { font-size: 12px; color: #999; margin-top: 2px; }
+.rank-val { font-size: 14px; font-weight: 600; color: #1890ff; }
 </style>
