@@ -24,6 +24,8 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/knowledge/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/knowledge").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/knowledge/upload").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/knowledge/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/knowledge/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

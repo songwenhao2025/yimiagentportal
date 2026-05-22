@@ -29,7 +29,7 @@ public class Workflow {
     @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "creator_id", length = 36, nullable = false)
+    @Column(name = "creator_id", length = 36)
     private String creatorId;
 
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -39,12 +39,12 @@ public class Workflow {
     private LocalDateTime updatedAt;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.yimi.ai.common.converter.WorkflowStatusConverter.class)
     @Builder.Default
     private com.yimi.ai.common.enums.WorkflowStatus status = com.yimi.ai.common.enums.WorkflowStatus.DRAFT;
 
     @Column(name = "trigger_type", length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.yimi.ai.common.converter.TriggerTypeConverter.class)
     private com.yimi.ai.common.enums.TriggerType triggerType;
 
     @Column(name = "cron_expression", length = 100)
@@ -58,11 +58,11 @@ public class Workflow {
     @Builder.Default
     private BigDecimal successRate = BigDecimal.ZERO;
 
-    @OneToMany(mappedBy = "workflowId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "workflowId")
     @Builder.Default
     private List<WorkflowNode> nodes = new ArrayList<>();
 
-    @OneToMany(mappedBy = "workflowId", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "workflowId")
     @Builder.Default
     private List<WorkflowEdge> edges = new ArrayList<>();
 

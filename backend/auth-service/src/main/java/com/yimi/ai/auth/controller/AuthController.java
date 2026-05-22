@@ -2,6 +2,7 @@ package com.yimi.ai.auth.controller;
 
 import com.yimi.ai.auth.dto.LoginRequest;
 import com.yimi.ai.auth.dto.LoginResponse;
+import com.yimi.ai.auth.dto.UserCreateRequest;
 import com.yimi.ai.auth.dto.UserResponse;
 import com.yimi.ai.auth.service.AuthService;
 import com.yimi.ai.common.response.ApiResponse;
@@ -22,6 +23,12 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<ApiResponse<LoginResponse>> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<ApiResponse<UserResponse>> register(@Valid @RequestBody UserCreateRequest request) {
+        UserResponse response = authService.createUser(request);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

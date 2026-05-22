@@ -22,7 +22,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/workflows/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/workflows/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/workflows/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/workflows/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/workflow-executions/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/workflow-executions/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

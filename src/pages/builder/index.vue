@@ -5,10 +5,10 @@
         <view class="header-content">
           <text class="page-title">Agent构建器</text>
           <view class="header-actions">
-            <view class="btn secondary">
+            <view class="btn secondary" @click="saveDraft">
               <text>保存草稿</text>
             </view>
-            <view class="btn primary">
+            <view class="btn primary" @click="submitAgent">
               <text>提交审核</text>
             </view>
           </view>
@@ -58,7 +58,7 @@
 
                 <view class="form-group">
                   <view class="form-label">Agent描述 <span class="required">*</span></view>
-                  <textarea class="form-textarea" v-model="formData.description" placeholder="请详细描述Agent的功能和使用场景" rows="4"></textarea>
+                  <textarea class="form-textarea" v-model="formData.description" placeholder="请详细描述Agent的功能和使用场景" rows="6" maxlength="5000"></textarea>
                 </view>
 
                 <view class="form-row">
@@ -342,6 +342,44 @@ const toggleKnowledge = (kbId: string) => {
     formData.value.knowledge.splice(idx, 1)
   }
 }
+
+const saveDraft = async () => {
+  try {
+    await agentService.save({
+      ...formData.value,
+      status: 'draft'
+    })
+    uni.showToast({ title: '保存草稿成功', icon: 'success' })
+  } catch (error) {
+    console.error('Failed to save draft:', error)
+    uni.showToast({ title: '保存失败', icon: 'error' })
+  }
+}
+
+const submitAgent = async () => {
+  if (!formData.value.name) {
+    uni.showToast({ title: '请输入Agent名称', icon: 'none' })
+    return
+  }
+  if (!formData.value.description) {
+    uni.showToast({ title: '请输入Agent描述', icon: 'none' })
+    return
+  }
+  
+  try {
+    const result = await agentService.create({
+      ...formData.value,
+      status: 'pending'
+    })
+    uni.showToast({ title: '提交审核成功', icon: 'success' })
+    setTimeout(() => {
+      uni.navigateBack()
+    }, 1500)
+  } catch (error) {
+    console.error('Failed to submit agent:', error)
+    uni.showToast({ title: '提交失败', icon: 'error' })
+  }
+}
 </script>
 
 <style lang="scss">
@@ -387,7 +425,6 @@ const toggleKnowledge = (kbId: string) => {
 }
 
 .page-content {
-  // Remove padding as Layout handles it
 }
 
 .builder-layout {
@@ -450,6 +487,7 @@ const toggleKnowledge = (kbId: string) => {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  width: 100%;
 }
 
 .form-row {

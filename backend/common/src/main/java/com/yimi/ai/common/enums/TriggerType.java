@@ -22,8 +22,11 @@ public enum TriggerType {
     }
 
     public static TriggerType fromCode(String code) {
+        if (code == null) {
+            return API;
+        }
         for (TriggerType type : values()) {
-            if (type.code.equals(code)) {
+            if (type.code.equalsIgnoreCase(code)) {
                 return type;
             }
         }

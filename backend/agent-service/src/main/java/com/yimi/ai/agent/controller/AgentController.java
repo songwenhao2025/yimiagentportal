@@ -57,8 +57,28 @@ public class AgentController {
         return ResponseEntity.ok(ApiResponse.success());
     }
 
+    @PostMapping("/{id}/activate")
+    public ResponseEntity<ApiResponse<AgentResponse>> activate(@PathVariable String id) {
+        AgentResponse response = agentService.activate(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/deactivate")
+    public ResponseEntity<ApiResponse<AgentResponse>> deactivate(@PathVariable String id) {
+        AgentResponse response = agentService.deactivate(id);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
     @PostMapping("/{id}/call")
     public ResponseEntity<ApiResponse<AgentCallResponse>> call(
+            @PathVariable String id, 
+            @RequestBody AgentCallRequest request) {
+        AgentCallResponse response = agentService.call(id, request);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @PostMapping("/{id}/chat")
+    public ResponseEntity<ApiResponse<AgentCallResponse>> chat(
             @PathVariable String id, 
             @RequestBody AgentCallRequest request) {
         AgentCallResponse response = agentService.call(id, request);

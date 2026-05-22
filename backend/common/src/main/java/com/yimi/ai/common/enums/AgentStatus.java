@@ -22,8 +22,11 @@ public enum AgentStatus {
     }
 
     public static AgentStatus fromCode(String code) {
+        if (code == null) {
+            return PENDING;
+        }
         for (AgentStatus status : values()) {
-            if (status.code.equals(code)) {
+            if (status.code.equalsIgnoreCase(code)) {
                 return status;
             }
         }

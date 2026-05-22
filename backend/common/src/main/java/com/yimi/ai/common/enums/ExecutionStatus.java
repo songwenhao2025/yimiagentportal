@@ -17,11 +17,14 @@ public enum ExecutionStatus {
     }
 
     public static ExecutionStatus fromCode(String code) {
+        if (code == null) {
+            return RUNNING;
+        }
         for (ExecutionStatus status : values()) {
-            if (status.code.equals(code)) {
+            if (status.code.equalsIgnoreCase(code)) {
                 return status;
             }
         }
-        throw new IllegalArgumentException("Invalid ExecutionStatus code: " + code);
+        return RUNNING;
     }
 }

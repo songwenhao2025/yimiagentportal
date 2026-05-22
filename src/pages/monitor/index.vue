@@ -69,7 +69,7 @@
             <text class="card-title">用户满意度</text>
             <view class="satisfaction-box">
               <view class="score-ring">
-                <text class="score-value">4.8</text>
+                <text class="score-value">{{ averageScore.toFixed(1) }}</text>
                 <text class="score-label">平均分</text>
               </view>
               <view class="rating-bars">
@@ -138,7 +138,8 @@ const chartLabels = ['周一', '周二', '周三', '周四', '周五', '周六',
 
 const agentRanking = ref<{ name: string; department: string; count: number }[]>([])
 const skillRanking = ref<{ name: string; category: string; count: number }[]>([])
-const ratingData = [45, 32, 15, 6, 2]
+const ratingData = ref<number[]>([45, 32, 15, 6, 2])
+const averageScore = ref(4.8)
 
 const getRankClass = (idx: number) => {
   if (idx === 0) return 'gold'
@@ -156,16 +157,21 @@ const loadDashboard = async () => {
   loading.value = true
   try {
     const days = timeRange.value === '7d' ? 7 : timeRange.value === '30d' ? 30 : 90
-    const [statistics, trends, agents, skills] = await Promise.all([
+    const [statistics, trends, agents, skills, satisfaction] = await Promise.all([
       adminService.getStatistics(),
       adminService.getCallTrends(days),
       adminService.getAgentRanking(5),
-      adminService.getSkillRanking(5)
+      adminService.getSkillRanking(5),
+      adminService.getSatisfactionData()
     ])
     stats.value = statistics
     chartData.value = trends.length > 0 ? trends : Array(days).fill(0)
     agentRanking.value = agents || []
     skillRanking.value = skills || []
+    if (satisfaction) {
+      averageScore.value = satisfaction.averageScore || 4.8
+      ratingData.value = satisfaction.ratingDistribution || [45, 32, 15, 6, 2]
+    }
   } catch (e) {
     console.error('Failed to load dashboard:', e)
   } finally {

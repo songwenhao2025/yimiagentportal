@@ -37,7 +37,7 @@ public class KnowledgeDocument {
     @Builder.Default
     private Long size = 0L;
 
-    @Column(name = "uploaded_by", length = 36, nullable = false)
+    @Column(name = "uploaded_by", length = 36)
     private String uploadedBy;
 
     @Column(name = "uploaded_at", nullable = false)

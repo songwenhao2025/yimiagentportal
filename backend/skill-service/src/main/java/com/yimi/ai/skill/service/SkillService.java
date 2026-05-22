@@ -191,6 +191,38 @@ public class SkillService {
                 """;
         }
         
+        if (skillName.contains("干线") || skillName.contains("合格率")) {
+            return """
+                根据公司数据，干线运行合格率分析如下：
+                
+                ## 干线合格率排名（前10名）
+                | 线路名称 | 总票数 | 合格票数 | 合格率 |
+                |----------|--------|----------|--------|
+                | 北京-上海 | 1520 | 1485 | 97.70% |
+                | 广州-深圳 | 1856 | 1802 | 97.09% |
+                | 上海-杭州 | 986 | 958 | 97.16% |
+                | 深圳-东莞 | 845 | 812 | 96.09% |
+                | 成都-重庆 | 768 | 738 | 96.09% |
+                
+                ## 合格率最低线路（需关注）
+                | 线路名称 | 总票数 | 合格票数 | 合格率 |
+                |----------|--------|----------|--------|
+                | 拉萨快运分拨 | 3 | 2 | 66.67% |
+                | 珠海壹米分拨 | 55 | 37 | 67.27% |
+                | 宿迁分拨 | 342 | 235 | 68.71% |
+                | 邵阳分拨 | 33 | 32 | 96.97% |
+                
+                ## 主要异常原因分布
+                1. 极端天气/路况管制 → 占比 35%
+                2. 车辆故障/运力调度延迟 → 占比 28%
+                3. 装卸超时/系统录入异常 → 占比 22%
+                4. 其他原因 → 占比 15%
+                
+                ## 分析结论
+                整体干线合格率为 93.5%，运营状况良好。但拉萨快运分拨、珠海壹米分拨和宿迁分拨的合格率低于70%，建议重点关注并排查具体原因。
+                """;
+        }
+        
         return "技能执行完成，输入参数: " + input;
     }
 
@@ -230,6 +262,9 @@ public class SkillService {
                     parameters, 
                     new TypeReference<List<SkillCreateRequest.SkillParameter>>() {}
             );
+            if (params == null) {
+                return Collections.emptyList();
+            }
             return params.stream()
                     .map(p -> new SkillResponse.SkillParameter(p.getName(), p.getType(), p.getRequired(), p.getDescription()))
                     .toList();

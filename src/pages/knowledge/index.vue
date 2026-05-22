@@ -88,6 +88,51 @@
           </view>
         </view>
       </view>
+
+      <!-- Upload Dialog -->
+      <view class="dialog-overlay" v-if="showUploadDialog">
+        <view class="dialog-mask" @click="showUploadDialog = false"></view>
+        <view class="dialog">
+          <view class="dialog-header">
+            <text class="dialog-title">上传文档</text>
+            <text class="dialog-close" @click="showUploadDialog = false">×</text>
+          </view>
+          <view class="dialog-body">
+            <view class="form-group">
+              <view class="form-label">文档标题</view>
+              <input class="form-input" type="text" v-model="uploadForm.title" placeholder="请输入文档标题" />
+            </view>
+            <view class="form-group">
+              <view class="form-label">分类</view>
+              <select class="form-select" v-model="uploadForm.category">
+                <option value="logistics">物流</option>
+                <option value="customer">客服</option>
+                <option value="finance">财务</option>
+                <option value="quality">质控</option>
+              </select>
+            </view>
+            <view class="form-group">
+              <view class="form-label">选择文件</view>
+              <view class="upload-area" @click="chooseFile">
+                <text class="upload-icon">📁</text>
+                <text class="upload-text">{{ selectedFileName || '点击选择文件' }}</text>
+              </view>
+            </view>
+            <view class="form-group">
+              <view class="form-label">文档内容</view>
+              <textarea class="form-textarea" v-model="uploadForm.content" placeholder="请输入文档内容..." rows="5"></textarea>
+            </view>
+          </view>
+          <view class="dialog-footer">
+            <view class="btn secondary" @click="showUploadDialog = false">
+              <text>取消</text>
+            </view>
+            <view class="btn primary" @click="submitUpload">
+              <text>上传</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </Layout>
 </template>
@@ -104,6 +149,15 @@ const docs = ref<KnowledgeDocument[]>([])
 const categories = ref<{ id: string; name: string }[]>([])
 const showPreview = ref(false)
 const previewDocData = ref<KnowledgeDocument | null>(null)
+
+const showUploadDialog = ref(false)
+const uploadForm = ref({
+  title: '',
+  category: 'logistics',
+  content: '',
+  size: 0
+})
+const selectedFileName = ref('')
 
 const filteredDocs = computed(() => {
   let result = docs.value
@@ -163,7 +217,52 @@ const loadCategories = async () => {
 }
 
 const uploadDocument = () => {
-  uni.showToast({ title: '上传功能开发中', icon: 'none' })
+  showUploadDialog.value = true
+}
+
+const chooseFile = () => {
+  const input = document.createElement('input')
+  input.type = 'file'
+  input.accept = '.pdf,.doc,.docx,.txt,.md'
+  input.onchange = (e: any) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0]
+      selectedFileName.value = file.name
+      uploadForm.value.size = file.size
+      
+      const reader = new FileReader()
+      reader.onload = (event) => {
+        uploadForm.value.content = event.target?.result as string
+      }
+      reader.readAsText(file)
+    }
+  }
+  input.click()
+}
+
+const submitUpload = async () => {
+  if (!uploadForm.value.title.trim()) {
+    uni.showToast({ title: '请输入文档标题', icon: 'none' })
+    return
+  }
+  try {
+    await knowledgeService.create({
+      title: uploadForm.value.title,
+      category: uploadForm.value.category || 'logistics',
+      content: uploadForm.value.content,
+      type: 'markdown',
+      uploadedBy: 'system',
+      size: uploadForm.value.size
+    } as any)
+    uni.showToast({ title: '上传成功', icon: 'success' })
+    showUploadDialog.value = false
+    uploadForm.value = { title: '', category: '', content: '', size: 0 }
+    selectedFileName.value = ''
+    loadDocuments()
+  } catch (error) {
+    console.error(error)
+    uni.showToast({ title: '上传失败', icon: 'none' })
+  }
 }
 
 onMounted(() => {
@@ -427,6 +526,98 @@ const deleteDoc = async (doc: KnowledgeDocument) => {
   color: #333;
   white-space: pre-wrap;
   word-break: break-all;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.form-input, .form-select, .form-textarea {
+  padding: 10px 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+  color: #333;
+  transition: all 0.2s;
+
+  &:focus {
+    outline: none;
+    border-color: #1890ff;
+    box-shadow: 0 0 0 2px rgba(24, 144, 255, 0.1);
+  }
+
+  &::placeholder {
+    color: #bbb;
+  }
+}
+
+.form-textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.upload-area {
+  width: 100%;
+  padding: 30px;
+  border: 2px dashed #d9d9d9;
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &:hover {
+    border-color: #1890ff;
+    background: #f6ffed;
+  }
+}
+
+.upload-icon {
+  font-size: 32px;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.upload-text {
+  font-size: 14px;
+  color: #666;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 20px;
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn {
+  padding: 8px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+
+  &.primary {
+    background: #1890ff;
+    color: #fff;
+    &:hover { background: #40a9ff; }
+  }
+
+  &.secondary {
+    background: #f5f5f5;
+    color: #666;
+    &:hover { background: #e8e8e8; }
+  }
 }
 
 .dialog-footer {

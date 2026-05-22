@@ -39,6 +39,9 @@
               <view class="action-btn" @click.stop="runWorkflow(wf)">
                 <text>▶ 运行</text>
               </view>
+              <view class="action-btn" @click.stop="viewExecutions(wf.id)">
+                <text>📋 记录</text>
+              </view>
               <view class="action-btn primary" @click.stop="editWorkflow(wf.id)">
                 <text>编辑</text>
               </view>
@@ -98,6 +101,10 @@ const runWorkflow = (wf: Workflow) => {
       }
     }
   })
+}
+
+const viewExecutions = (id: string) => {
+  uni.navigateTo({ url: `/pages/workflow/execution?id=${id}` })
 }
 
 const editWorkflow = (id: string) => {

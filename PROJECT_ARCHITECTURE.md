@@ -1,7 +1,7 @@
 # 壹米AI Agent门户 — 项目架构文档
 
 > 生成时间: 2026-05-19
-> 最后更新: 2026-05-20
+> 最后更新: 2026-05-21
 
 ---
 
@@ -99,7 +99,7 @@
 |------|------|----------|----------|
 | **auth-service** | 8081 | users | 用户认证、登录、用户 CRUD、JWT 管理 |
 | **agent-service** | 8082 | agents, agent_call_logs, agent_ratings, agent_favorites | Agent CRUD、调用（接入 LLM）、评分、收藏、调用日志 |
-| **skill-service** | 8083 | skills | 技能定义管理、发布 |
+| **skill-service** | 8083 | skills | 技能定义管理、发布、执行 |
 | **workflow-service** | 8084 | workflows, workflow_nodes, workflow_edges, workflow_executions | 工作流定义、可视化编排、节点图执行引擎、执行记录 |
 | **knowledge-service** | 8085 | knowledge_documents | 知识文档管理、检索、文件上传 |
 | **admin-service** | 8086 | audit_logs, cost_records | 审计日志、费用统计、监控 Dashboard（趋势/排行） |
@@ -112,6 +112,8 @@
 1. **agent-service → llm-service**: Agent 调用时通过 RestTemplate 调用 `POST /api/llm/chat`
 2. **workflow-service → agent-service**: 工作流节点执行时调用 `POST /api/agents/{id}/call`
 3. **admin-service → skill-service**: 技能排行榜通过 RestTemplate 调用 skill-service API
+4. **agent-service → skill-service**: Agent 调用时并行调用技能执行 `POST /api/skills/{id}/execute`
+5. **agent-service → knowledge-service**: Agent 调用时并行检索知识库 `GET /api/knowledge/search`
 
 此外：
 - **共享 common 模块**（Maven 依赖）：所有实体类、枚举、JPA Converter、异常定义统一维护
@@ -161,6 +163,8 @@
 │  │ status | tags(JSON) | creator_id              │               │
 │  │ success_rate | avg_time | daily_calls         │               │
 │  │ usage_count | rating | is_favorite             │               │
+│  │ skills(JSON) | knowledge(JSON) | system_prompt  │               │
+│  │ examples(JSON) | model | visibility            │               │
 │  │ created_at | updated_at                        │               │
 │  └──────────────────────────────────────────────┘               │
 │                                                                 │
@@ -248,9 +252,9 @@
 | **WorkflowStatus** | DRAFT, ACTIVE, INACTIVE |
 | **TriggerType** | API, CRON, EVENT |
 | **ExecutionStatus** | RUNNING, COMPLETED, FAILED, CANCELLED |
-| **DocumentType** | PDF, WORD, EXCEL, MARKDOWN, URL |
-| **DocumentStatus** | UPLOADING, PROCESSING, READY, FAILED |
-| **VectorStatus** | PENDING, PROCESSING, COMPLETED, FAILED |
+| **DocumentType** | PDF, WORD, EXCEL, MARKDOWN, URL (枚举值: pdf/word/excel/markdown/url) |
+| **DocumentStatus** | UPLOADING, PROCESSING, READY, FAILED (枚举值: uploading/processing/ready/failed) |
+| **VectorStatus** | PENDING, INDEXING, COMPLETED (枚举值: pending/indexing/completed) |
 | **AuditResult** | SUCCESS, FAILED |
 
 ### 4.3 JPA 转换器 (AttributeConverter)
@@ -354,16 +358,20 @@ PageResponse<T> { list: List<T>, total: long, page: int, size: int }
 | DELETE | `/api/agents/{agentId}/ratings/{id}` | 删除评分 |
 | GET | `/api/agents/{agentId}/ratings` | 查询评分列表 |
 
-#### Agent 调用链路（已接入 LLM）
+#### Agent 调用链路（已接入 LLM + 并行技能/知识库）
 ```
 POST /api/agents/{id}/call
   → agentRepository.findById(id)
   → 检查 status == ONLINE
+  → 解析 skills/knowledge JSON 数组
+  → CompletableFuture 并行执行:
+     ├─ callSkills(): RestTemplate POST → skill-service /api/skills/{id}/execute
+     └─ searchKnowledge(): RestTemplate GET → knowledge-service /api/knowledge/search
+  → 合并技能和知识库结果到增强 system prompt
   → RestTemplate POST → http://localhost:8087/api/llm/chat
-     (system prompt: 角色扮演 + 描述)
+     (system prompt: 角色 + systemPrompt + 技能结果 + 知识库结果 + 示例对话)
   → 解析 LLM 响应文本
   → 更新 Agent 指标 (usageCount, successRate, avgTime)
-  → 记录调用日志
   → 返回 { output, duration }
 ```
 
@@ -383,11 +391,13 @@ POST /api/agents/{id}/call
 | PUT | `/api/skills/{id}` | 更新技能 |
 | DELETE | `/api/skills/{id}` | 删除技能 |
 | POST | `/api/skills/{id}/publish` | 发布技能（DRAFT/REVIEW → PUBLISHED） |
+| POST | `/api/skills/{id}/execute` | 执行技能（传入 input 参数，返回执行结果） |
 
 #### 核心逻辑
 - 创建技能时默认状态为 `DRAFT`，版本号 `1.0.0`，超时 30 秒
 - 参数列表 (`List<SkillParameter>`) 通过 Jackson 序列化为 JSON 字符串存储
 - 发布时检查是否已发布，已发布则返回 400 错误
+- 技能执行 (`execute`) 检查技能状态必须为 `PUBLISHED`，根据技能名称匹配内置逻辑返回模拟数据，每次执行递增 `usageCount`
 
 ---
 
@@ -459,6 +469,8 @@ POST /api/workflows/{id}/execute
 - 创建文档默认 `status=UPLOADING`, `vectorStatus=PENDING`
 - 搜索基于 `title LIKE '%query%'` 模糊匹配
 - 支持按分类筛选
+- 文档实体包含 `content` 字段（LONGTEXT），用于存储文档正文内容，支持预览
+- 枚举值统一使用小写命名（`pdf/word/excel/markdown/url`、`uploading/processing/ready/failed`、`pending/indexing/completed`）
 
 ---
 
@@ -639,40 +651,56 @@ Vue Component (Pages/Components)
   │  uni.setStorageSync('token')  │                              │
 ```
 
-### 7.2 Agent 调用链路（已接入 LLM）
+### 7.2 Agent 调用链路（已接入 LLM + 技能 + 知识库）
 
 ```
-前端                  agent-service:8082        llm-service:8087      MySQL
-  │                        │                        │                  │
-  │ POST /api/agents/{id}/call                     │                  │
-  │ { input: "查询路由信息" }                       │                  │
-  │─────────────────────────▶│                      │                  │
-  │                         │  agentRepository.findById()            │
-  │                         │───────────────────────────────────────▶│
-  │                         │◀───────────────────────────────────────│
-  │                         │                        │               │
-  │                         │  检查 status == ONLINE  │               │
-  │                         │  构造 system prompt     │               │
-  │                         │  (角色扮演)             │               │
-  │                         │  POST /api/llm/chat     │               │
-  │                         │───────────────────────▶│               │
-  │                         │                        │  Claude API    │
-  │                         │                        │──────────────▶│
-  │                         │                        │◀──────────────│
-  │                         │◀───────────────────────│               │
-  │                         │  返回 AI 响应文本       │               │
-  │                         │                        │               │
-  │                         │  更新 metrics           │               │
-  │                         │  agentRepository.save() │               │
-  │                         │───────────────────────────────────────▶│
-  │                         │                        │               │
-  │                         │  记录调用日志            │               │
-  │                         │  callLogService.create()│               │
-  │                         │───────────────────────────────────────▶│
-  │                         │                        │               │
-  │◀─────────────────────────│                        │               │
-  │ { output: "AI回复...",   │                        │               │
-  │   duration: 3200 }       │                        │               │
+前端                  agent-service:8082        llm-service:8087      skill-service:8083   knowledge-service:8085   MySQL
+  │                        │                        │                      │                       │                  │
+  │ POST /api/agents/{id}/call                     │                      │                       │                  │
+  │ { input: "查询路由信息" }                       │                      │                       │                  │
+  │─────────────────────────▶│                      │                      │                       │                  │
+  │                         │  agentRepository.findById()                                    │                      │                  │
+  │                         │───────────────────────────────────────────────────────────────▶│                      │                  │
+  │                         │◀───────────────────────────────────────────────────────────────│                      │                  │
+  │                         │                        │                      │                       │              │
+  │                         │  检查 status == ONLINE  │                      │                       │              │
+  │                         │  解析 skills/knowledge  │                      │                       │              │
+  │                         │  JSON 数组              │                      │                       │              │
+  │                         │                        │                      │                       │              │
+  │                         │  ┌─── 并行执行 ───────┐│                      │                       │              │
+  │                         │  │ CompletableFuture  ││                      │                       │              │
+  │                         │  │                    ││                      │                       │              │
+  │                         │  │ callSkills()       ││                      │                       │              │
+  │                         │  │───────────────────────────────────────────▶│                       │              │
+  │                         │  │ POST /api/skills/  ││                      │                       │              │
+  │                         │  │ {id}/execute       ││                      │                       │              │
+  │                         │  │◀───────────────────││                      │                       │              │
+  │                         │  │                    ││                      │                       │              │
+  │                         │  │ searchKnowledge()  ││                      │                       │              │
+  │                         │  │──────────────────────────────────────────────────────────────────▶│              │
+  │                         │  │ GET /api/knowledge/││                      │                       │              │
+  │                         │  │ search?query=...   ││                      │                       │              │
+  │                         │  │◀───────────────────││                      │                       │              │
+  │                         │  └────────────────────┘│                      │                       │              │
+  │                         │                        │                      │                       │              │
+  │                         │  构造增强 system prompt│                      │                       │              │
+  │                         │  (角色 + 技能结果      │                      │                       │              │
+  │                         │   + 知识库结果)        │                      │                       │              │
+  │                         │  POST /api/llm/chat     │                      │                       │              │
+  │                         │───────────────────────▶│                      │                       │              │
+  │                         │                        │  Claude API           │                       │              │
+  │                         │                        │──────────────▶│                      │              │
+  │                         │                        │◀──────────────│                      │              │
+  │                         │◀───────────────────────│                      │                       │              │
+  │                         │  返回 AI 响应文本       │                      │                       │              │
+  │                         │                        │                      │                       │              │
+  │                         │  更新 metrics           │                      │                       │              │
+  │                         │  agentRepository.save() │                      │                       │              │
+  │                         │───────────────────────────────────────────────────────────────────────▶│              │
+  │                         │                        │                      │                       │              │
+  │◀─────────────────────────│                        │                      │                       │              │
+  │ { output: "AI回复...",   │                        │                      │                       │              │
+  │   duration: 3200 }       │                        │                      │                       │              │
 ```
 
 ### 7.3 工作流执行链路
@@ -750,24 +778,29 @@ Vue Component (Pages/Components)
 
 1. **用户认证系统**: 登录、JWT 生成、用户 CRUD（BCrypt 密码加密）
 2. **JWT 认证过滤器**: `JwtAuthenticationFilter` 集成到所有 7 个服务
-3. **Agent 管理**: 完整的 CRUD + 调用（接入 LLM 真实响应）+ 指标自动计算 + 评分 + 调用日志
-4. **技能管理**: CRUD + 发布流程 + 参数 JSON 序列化
+3. **Agent 管理**: 完整的 CRUD + 调用（接入 LLM 真实响应 + 并行技能/知识库调用）+ 指标自动计算 + 评分 + 调用日志
+4. **技能管理**: CRUD + 发布流程 + 参数 JSON 序列化 + **技能执行端点** (`POST /api/skills/{id}/execute`)
 5. **工作流引擎**: CRUD + 激活/停用 + **节点图执行引擎**（Agent/Skill 真实调用）+ 执行记录 + 可视化设计器
-6. **知识文档管理**: CRUD + 标题搜索 + 文件上传（uni.chooseFile + uni.uploadFile）
+6. **知识文档管理**: CRUD + 标题搜索 + 文件上传（uni.chooseFile + uni.uploadFile）+ **文档内容字段**（LONGTEXT）+ 预览功能
 7. **LLM 集成**: Claude API 封装（聊天/技能生成/工作流生成/知识问答/日志分析/摘要/关键词提取）
 8. **监控 Dashboard**: 数据库聚合统计 + 调用趋势 + Agent/Skill 排行榜
 9. **登录页面**: 完整登录流程，JWT 存储，401 自动跳转
 10. **前端页面**: 13 个页面，大部分已接入真实后端 API
+11. **Agent 增强配置**: Agent 实体扩展 `skills`、`knowledge`、`systemPrompt`、`examples`、`model`、`visibility` 字段
+12. **Agent 并行调用引擎**: 使用 `CompletableFuture` 并发调用技能和知识库，结果合并注入 LLM system prompt
 
 ### 8.2 架构特点
 
 - **共享数据库的微服务**: 7 个服务共享同一 MySQL 数据库，通过 `common` 模块共享实体定义。这是模块化单体（Modular Monolith）架构
-- **服务间 HTTP 调用**: agent-service → llm-service, workflow-service → agent-service, admin-service → skill-service
+- **服务间 HTTP 调用**: agent-service → llm-service, workflow-service → agent-service, admin-service → skill-service, **agent-service → skill-service (技能执行), agent-service → knowledge-service (知识检索)**
 - **JPA 转换器模式**: 所有枚举类配备 `@Converter(autoApply = true)`，数据库存 code 值，Java 层用枚举
+- **枚举小写命名**: DocumentType、DocumentStatus、VectorStatus 枚举值统一使用小写（如 `pdf`、`uploading`、`pending`），配合 `@JdbcTypeCode(SqlTypes.CHAR)` 映射
+- **Agent 并行调用引擎**: `ExecutorService(4 线程池)` + `CompletableFuture` 并发执行技能和知识库检索，结果合并后注入 LLM
 - **无服务注册/发现**: 虽然引入了 Spring Cloud 和 Spring Cloud Alibaba，但代码中未使用 Nacos、Eureka 等注册中心
 - **无 API 网关**: 前端直接通过路径前缀访问各服务，依赖 Vite/Nginx 代理路由
 - **Lombok 大量使用**: 所有实体和 DTO 使用 `@Data`/`@Builder` 简化样板代码
 - **环境变量配置**: 已统一为 Vite 的 `import.meta.env.VITE_*` 语法
+- **前端超时配置**: API 超时从 30s 调整为 120s（`.env.development`），默认回退值 60s
 
 ### 8.3 项目文件清单
 
@@ -828,20 +861,86 @@ npm run build:h5     # 构建 H5 产物
 | **认证** | ✅ 已实现 | JWT Filter 集成到所有服务，端点配置了读写权限分离（GET 公开，写操作需登录） |
 | **工作流引擎** | ✅ 已实现 | 节点图遍历执行、条件分支 `{{var}}` 表达式评估、Agent/Skill 真实调用、失败自动重试 3 次 |
 | **工作流调度** | ✅ 已实现 | 添加 `@EnableScheduling`，支持 Cron 表达式定时触发 |
-| **知识库** | ✅ 已实现 | 文件上传本地存储（`/uploads/`），加权关键词搜索（标题权重高） |
+| **知识库** | ✅ 已实现 | 文件上传本地存储（`/uploads/`），加权关键词搜索（标题权重高），文档内容字段支持预览 |
 | **前端交互** | ✅ 已实现 | 工作流画布支持 H5 鼠标拖拽和连线（mousedown/move/up 事件） |
 | **前端数据** | ✅ 已实现 | 监控 Dashboard 趋势图/排行榜、Agent 详情评价、管理中心概览全部接入真实 API |
 | **全局样式** | ✅ 已实现 | 蓝白 Ant Design 风格统一，所有 13 个页面已适配 |
+| **Agent 技能/知识库** | ✅ 已实现 | Agent 实体扩展 skills/knowledge/systemPrompt/examples/model/visibility 字段，调用时并行执行技能和检索知识库，结果合并注入 LLM |
+| **技能执行** | ✅ 已实现 | `POST /api/skills/{id}/execute` 端点，检查 PUBLISHED 状态后执行内置逻辑 |
 
-### 8.6 基础设施级待完善（需引入外部依赖）
+### 8.6 与阿里悟空 (Wukong) 产品功能对比
 
-| 模块 | 优先级 | 说明 |
-|------|--------|------|
-| **向量数据库** | 低 | 知识库语义搜索需引入 Milvus/FAISS 等向量引擎 |
-| **文档解析器** | 低 | PDF/Word 自动文本提取需引入 Apache Tika |
-| **分布式调度** | 低 | Cron 触发器需持久化 nextRunTime 字段 |
-| **消息队列** | 低 | 大规模重试/告警需引入 Redis + RabbitMQ/Kafka |
-| **API 网关** | 低 | 当前直连微服务，生产环境建议引入 Spring Cloud Gateway |
+阿里于 2026 年 3 月 17 日发布的企业级 AI Agent 平台"悟空"（ATH 事业群首秀）定位为**全球首个企业级 AI 原生工作平台**，核心能力是**多 Agent 协同**、**跨系统操作**、**企业级安全沙箱**和**Skill 生态市场**。悟空内置于钉钉（超 2000 万企业组织），同时作为独立应用运行，首批提供十大行业 OPT（One Person Team）开箱即用方案。以下是对比分析：
+
+| 功能维度 | 阿里悟空 (Wukong) | 壹米 AI Agent 门户 | 差距说明 |
+|---------|------------------|-------------------|---------|
+| **Agent 市场** | 全球 Skill 市场生态，付费调用分发 | ✅ 基础技能市场 | 缺少技能审核/版本管理/测试沙箱/市场分发机制 |
+| **多 Agent 协作** | 多 Agent 同时协调工作（龙虾军团） | ⚠️ 单 Agent 调用 | Agent 可关联多个技能/知识库但仅单次串行，无多 Agent 对话编排 |
+| **工作流编排** | 可视化 + 自然语言创建 + AI 推荐节点 | ✅ 可视化画布编排 | 缺少自然语言创建、AI 智能推荐节点 |
+| **跨系统操作** | 原生操作电脑/浏览器/云端 + 无影 AgentBay | ❌ 未实现 | 仅内部 HTTP 调用，无外部系统/桌面集成能力 |
+| **钉钉/IM 集成** | 深度集成钉钉上千项能力，支持微信/Slack | ❌ 未实现 | 无 IM 平台集成、无消息推送 |
+| **企业权限** | 自动继承钉钉组织架构和权限 | ⚠️ 基础 RBAC | 无组织架构树、无部门级数据隔离、无权限继承 |
+| **安全沙箱** | 六层递进安全体系 + 操作隔离 | ❌ 未实现 | 无代码执行沙箱、无多租户隔离、无敏感凭据加密 |
+| **Token 成本管控** | 实时 Token 消耗可视化 + 预算管理 | ⚠️ 基础费用记录 | 有 cost_records 聚合统计，无实时消耗监控和预算控制 |
+| **行业解决方案** | 十大行业 OPT 开箱即用（电商/跨境电商/开发/设计等） | ❌ 未实现 | 无行业模板、无预置一人团队方案 |
+| **开发者生态** | 开发→审核→上架→分发全链路，企业内部共享 | ⚠️ 基础 CRUD | 缺少 Skill 开发审核流程、上架分发机制 |
+| **长期记忆** | 用户偏好/习惯/上下文跨会话记忆 | ❌ 未实现 | 无用户画像、无对话历史持久化、无个性化推荐 |
+| **Agent 构建** | AI 辅助构建 + 模板市场 + 一键部署 | ⚠️ 手动表单构建 | 缺少 AI 辅助创建、模板库、一键部署 |
+| **多模型支持** | Qwen 全家桶 + 企业专属模型部署 | ⚠️ 仅 Claude | Agent 已有 `model` 字段但未实现多模型切换逻辑 |
+| **多端支持** | 电脑端 + 手机端远程唤起 | ⚠️ H5 + 微信小程序 | uni-app 跨平台能力已有，但功能完整度不如独立客户端 |
+| **实时监控** | 全局 Agent 状态监控 + 性能指标告警 | ✅ 基础监控 Dashboard | 缺少实时在线状态监控、Token 消耗监控、自动告警 |
+| **数据看板** | 行业解决方案数据看板 + 自定义报表 | ✅ 基础统计 | 缺少行业模板、自定义报表、数据导出 |
+
+### 8.7 核心差距总结
+
+| 差距层级 | 说明 |
+|---------|------|
+| **平台级差距** | 悟空是**平台级产品**（Skill 市场、开发者生态、行业解决方案），壹米是**单租户应用** |
+| **安全级差距** | 悟空从设计之初围绕企业级安全（沙箱、权限继承、凭据加密），壹米缺少安全隔离层 |
+| **集成级差距** | 悟空原生集成钉钉生态 + 桌面操作能力，壹米仅内部 HTTP 微服务调用 |
+| **生态级差距** | 悟空目标是"全球最大 ToB Skill 市场"，壹米技能系统仍为封闭 CRUD |
+
+### 8.8 待完善功能清单（按优先级排序）
+
+#### 🔴 P0 — 核心能力缺失
+
+| # | 功能 | 优先级 | 工作量 | 说明 |
+|---|------|--------|--------|------|
+| 1 | **多 Agent 协作对话** | P0 | 大 | Agent 对话页支持多 Agent 切换编排，对话上下文共享，类似悟空"龙虾军团" |
+| 2 | **多模型支持** | P0 | 中 | 支持切换 Claude/GPT/通义千问等多模型（Agent 已有 `model` 字段，需实现切换逻辑） |
+| 3 | **组织架构管理** | P0 | 大 | 部门树形结构、用户归属、数据权限隔离、权限自动继承 |
+| 4 | **Agent 行业模板** | P0 | 中 | 预置十大行业一人团队方案（电商/开发/设计/客服等），开箱即用 |
+
+#### 🟡 P1 — 体验增强
+
+| # | 功能 | 优先级 | 工作量 | 说明 |
+|---|------|--------|--------|------|
+| 5 | **AI 辅助构建 Agent** | P1 | 中 | 输入描述自动生成 Agent 配置和提示词，AI 智能推荐工作流节点 |
+| 6 | **用户长期记忆** | P1 | 大 | 对话历史持久化存储、用户偏好学习、个性化推荐 |
+| 7 | **知识库语义搜索** | P1 | 中 | 引入向量数据库 (Milvus/FAISS) + Embedding 模型，替代当前模糊匹配 |
+| 8 | **文档自动解析** | P1 | 中 | PDF/Word 文本提取 (Apache Tika)，自动分块向量化 |
+| 9 | **IM 消息推送** | P1 | 中 | 钉钉/企业微信/Slack 消息通知集成，支持远程唤起 |
+
+#### 🟢 P2 — 企业级能力
+
+| # | 功能 | 优先级 | 工作量 | 说明 |
+|---|------|--------|--------|------|
+| 10 | **Token 成本管控** | P2 | 中 | 实时 Token 消耗可视化、预算管理、按部门/Agent 成本分摊 |
+| 11 | **Skill 审核与分发** | P2 | 大 | 技能开发→审核→上架→分发全链路，支持企业内部共享/市场付费调用 |
+| 12 | **安全沙箱** | P2 | 大 | Skill 代码执行沙箱、多租户隔离、敏感凭据加密管理、操作审计全链路 |
+| 13 | **跨系统集成** | P2 | 大 | API Connector 配置、钉钉/微信等 IM 原生能力调用、外部系统数据同步 |
+| 14 | **审批工作流** | P2 | 中 | 节点级人工审批、超时自动通过/拒绝、审批流与权限联动 |
+| 15 | **数据导出报表** | P2 | 小 | CSV/Excel 导出、自定义报表、定时邮件推送 |
+
+#### 🔵 P3 — 生态扩展
+
+| # | 功能 | 优先级 | 工作量 | 说明 |
+|---|------|--------|--------|------|
+| 16 | **Skill 版本管理** | P3 | 中 | 技能版本控制、灰度发布、回滚 |
+| 17 | **Agent 对话分享** | P3 | 小 | 精彩对话一键分享、公开/私有设置 |
+| 18 | **自定义 Dashboard** | P3 | 中 | 拖拽式看板、自定义指标组件 |
+| 19 | **API 网关** | P3 | 中 | Spring Cloud Gateway 统一入口、限流熔断 |
+| 20 | **自然语言工作流** | P3 | 大 | 通过 LLM 将自然语言描述自动转换为工作流定义 |
 
 ---
 

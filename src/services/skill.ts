@@ -2,13 +2,36 @@
 // 壹米AI Agent门户 - 技能服务
 // =====================================================
 
-import { http } from '@/utils/request'
+import axios from 'axios'
 import type { Skill } from '@/data/skills'
 
+const skillRequest = axios.create({
+  baseURL: 'http://localhost:8092',
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+skillRequest.interceptors.response.use(
+  (response) => {
+    const { data } = response
+    if (data.code === 200 || data.success) {
+      return data.data || data
+    } else {
+      uni.showToast({ title: data.message || '请求失败', icon: 'error' })
+      return Promise.reject(data)
+    }
+  },
+  (error) => {
+    if (!error.response) {
+      uni.showToast({ title: '网络异常', icon: 'none' })
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const skillService = {
-  /**
-   * 获取技能列表
-   */
   async list(params?: {
     page?: number
     size?: number
@@ -16,48 +39,30 @@ export const skillService = {
     status?: string
     keyword?: string
   }): Promise<{ list: Skill[]; total: number }> {
-    return http.get('/api/skills', params)
+    return skillRequest.get('/api/skills', { params })
   },
 
-  /**
-   * 获取技能详情
-   */
   async get(id: string): Promise<Skill> {
-    return http.get(`/api/skills/${id}`)
+    return skillRequest.get(`/api/skills/${id}`)
   },
 
-  /**
-   * 创建技能
-   */
   async create(data: Omit<Skill, 'id' | 'createdAt'>): Promise<Skill> {
-    return http.post('/api/skills', data)
+    return skillRequest.post('/api/skills', data)
   },
 
-  /**
-   * 更新技能
-   */
   async update(id: string, data: Partial<Skill>): Promise<Skill> {
-    return http.put(`/api/skills/${id}`, data)
+    return skillRequest.put(`/api/skills/${id}`, data)
   },
 
-  /**
-   * 删除技能
-   */
   async delete(id: string): Promise<void> {
-    return http.delete(`/api/skills/${id}`)
+    return skillRequest.delete(`/api/skills/${id}`)
   },
 
-  /**
-   * 发布技能
-   */
   async publish(id: string): Promise<Skill> {
-    return http.post(`/api/skills/${id}/publish`)
+    return skillRequest.post(`/api/skills/${id}/publish`)
   },
 
-  /**
-   * 测试技能
-   */
   async test(id: string, params: Record<string, any>): Promise<any> {
-    return http.post(`/api/skills/${id}/test`, params)
+    return skillRequest.post(`/api/skills/${id}/test`, params)
   },
 }

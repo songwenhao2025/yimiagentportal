@@ -12,4 +12,15 @@ import lombok.NoArgsConstructor;
 public class AgentCallRequest {
 
     private String input;
+    
+    private String message;
+    
+    private String sessionId;
+    
+    public String getInput() {
+        if (input != null && !input.isEmpty()) {
+            return input;
+        }
+        return message;
+    }
 }

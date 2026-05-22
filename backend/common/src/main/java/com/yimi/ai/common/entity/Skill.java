@@ -44,7 +44,7 @@ public class Skill {
     @Column(length = 20, nullable = false)
     private String version;
 
-    @Column(name = "creator_id", length = 36, nullable = false)
+    @Column(name = "creator_id", length = 36)
     private String creatorId;
 
     @Column(name = "created_at", nullable = false, updatable = false)

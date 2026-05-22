@@ -2,13 +2,36 @@
 // 壹米AI Agent门户 - 知识库服务
 // =====================================================
 
-import { http } from '@/utils/request'
+import axios from 'axios'
 import type { KnowledgeDocument } from '@/data/knowledge'
 
+const knowledgeRequest = axios.create({
+  baseURL: 'http://localhost:8093',
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+knowledgeRequest.interceptors.response.use(
+  (response) => {
+    const { data } = response
+    if (data.code === 200 || data.success) {
+      return data.data || data
+    } else {
+      uni.showToast({ title: data.message || '请求失败', icon: 'error' })
+      return Promise.reject(data)
+    }
+  },
+  (error) => {
+    if (!error.response) {
+      uni.showToast({ title: '网络异常', icon: 'none' })
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const knowledgeService = {
-  /**
-   * 获取文档列表
-   */
   async list(params?: {
     page?: number
     size?: number
@@ -16,53 +39,39 @@ export const knowledgeService = {
     status?: string
     keyword?: string
   }): Promise<{ list: KnowledgeDocument[]; total: number }> {
-    return http.get('/api/knowledge', params)
+    return knowledgeRequest.get('/api/knowledge', { params })
   },
 
-  /**
-   * 获取文档详情
-   */
   async get(id: string): Promise<KnowledgeDocument> {
-    return http.get(`/api/knowledge/${id}`)
+    return knowledgeRequest.get(`/api/knowledge/${id}`)
   },
 
-  /**
-   * 上传文档
-   */
+  async create(data: { title: string; category?: string; content?: string; type?: string }): Promise<KnowledgeDocument> {
+    return knowledgeRequest.post('/api/knowledge', data)
+  },
+
   async upload(file: File, category?: string): Promise<KnowledgeDocument> {
     const formData = new FormData()
     formData.append('file', file)
     if (category) {
       formData.append('category', category)
     }
-    return http.post('/api/knowledge/upload', formData)
+    return knowledgeRequest.post('/api/knowledge/upload', formData)
   },
 
-  /**
-   * 更新文档
-   */
   async update(id: string, data: Partial<KnowledgeDocument>): Promise<KnowledgeDocument> {
-    return http.put(`/api/knowledge/${id}`, data)
+    return knowledgeRequest.put(`/api/knowledge/${id}`, data)
   },
 
-  /**
-   * 删除文档
-   */
   async delete(id: string): Promise<void> {
-    return http.delete(`/api/knowledge/${id}`)
+    return knowledgeRequest.delete(`/api/knowledge/${id}`)
   },
 
-  /**
-   * 搜索文档
-   */
   async search(query: string, params?: { limit?: number }): Promise<KnowledgeDocument[]> {
-    return http.get('/api/knowledge/search', { query, ...params })
+    return knowledgeRequest.get('/api/knowledge/search', { params: { query, ...params } })
   },
 
-  /**
-   * 获取分类列表
-   */
   async getCategories(): Promise<{ id: string; name: string; count: number }[]> {
-    return http.get('/api/knowledge/categories')
+    return knowledgeRequest.get('/api/knowledge/categories')
   },
 }

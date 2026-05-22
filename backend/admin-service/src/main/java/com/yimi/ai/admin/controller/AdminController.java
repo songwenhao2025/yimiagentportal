@@ -101,6 +101,12 @@ public class AdminController {
         return ResponseEntity.ok(ApiResponse.success(ranking));
     }
 
+    @GetMapping("/dashboard/satisfaction")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getSatisfactionData() {
+        Map<String, Object> data = adminService.getSatisfactionData();
+        return ResponseEntity.ok(ApiResponse.success(data));
+    }
+
     @lombok.Data
     @lombok.NoArgsConstructor
     @lombok.AllArgsConstructor

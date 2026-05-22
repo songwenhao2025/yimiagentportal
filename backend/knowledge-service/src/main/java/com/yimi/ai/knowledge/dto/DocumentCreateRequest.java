@@ -20,7 +20,6 @@ public class DocumentCreateRequest {
 
     private Long size;
 
-    @NotBlank(message = "上传者ID不能为空")
     private String uploadedBy;
 
     @NotBlank(message = "分类不能为空")
@@ -29,4 +28,6 @@ public class DocumentCreateRequest {
     private String filePath;
 
     private String fileUrl;
+
+    private String content;
 }

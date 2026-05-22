@@ -2,7 +2,9 @@ package com.yimi.ai.workflow.service;
 
 import com.yimi.ai.workflow.dto.WorkflowCreateRequest;
 import com.yimi.ai.workflow.dto.WorkflowResponse;
+import com.yimi.ai.workflow.repository.WorkflowEdgeRepository;
 import com.yimi.ai.workflow.repository.WorkflowExecutionRepository;
+import com.yimi.ai.workflow.repository.WorkflowNodeRepository;
 import com.yimi.ai.workflow.repository.WorkflowRepository;
 import com.yimi.ai.common.entity.Workflow;
 import com.yimi.ai.common.entity.WorkflowEdge;
@@ -33,6 +35,8 @@ import java.util.UUID;
 public class WorkflowService {
 
     private final WorkflowRepository workflowRepository;
+    private final WorkflowNodeRepository workflowNodeRepository;
+    private final WorkflowEdgeRepository workflowEdgeRepository;
     private final WorkflowExecutionRepository executionRepository;
 
     public PageResponse<WorkflowResponse> list(String status, String triggerType, String keyword, int page, int size) {
@@ -68,7 +72,7 @@ public class WorkflowService {
                 .id(UUID.randomUUID().toString())
                 .name(request.getName())
                 .description(request.getDescription())
-                .creatorId(request.getCreatorId() != null ? request.getCreatorId() : "system")
+                .creatorId(request.getCreatorId() != null ? request.getCreatorId() : "2f849587-c2ca-40dd-9164-19d53f5f7fe2")
                 .status(WorkflowStatus.DRAFT)
                 .triggerType(TriggerType.fromCode(request.getTriggerType()))
                 .cronExpression(request.getCronExpression())
@@ -78,7 +82,7 @@ public class WorkflowService {
 
         Workflow saved = workflowRepository.save(workflow);
 
-        // Save nodes
+        // Save nodes first
         if (request.getNodes() != null) {
             for (WorkflowCreateRequest.WorkflowNodeRequest nodeReq : request.getNodes()) {
                 WorkflowNode node = WorkflowNode.builder()
@@ -92,11 +96,12 @@ public class WorkflowService {
                         .agentId(nodeReq.getAgentId())
                         .skillId(nodeReq.getSkillId())
                         .build();
+                workflowNodeRepository.save(node);
                 saved.getNodes().add(node);
             }
         }
 
-        // Save edges
+        // Save edges after nodes
         if (request.getEdges() != null) {
             for (WorkflowCreateRequest.WorkflowEdgeRequest edgeReq : request.getEdges()) {
                 WorkflowEdge edge = WorkflowEdge.builder()
@@ -107,11 +112,10 @@ public class WorkflowService {
                         .sourceHandle(edgeReq.getSourceHandle())
                         .targetHandle(edgeReq.getTargetHandle())
                         .build();
+                workflowEdgeRepository.save(edge);
                 saved.getEdges().add(edge);
             }
         }
-
-        saved = workflowRepository.save(saved);
         return convertToResponse(saved);
     }
 
@@ -198,7 +202,10 @@ public class WorkflowService {
     }
 
     private WorkflowResponse convertToResponse(Workflow workflow) {
-        List<WorkflowResponse.WorkflowNodeResponse> nodeResponses = workflow.getNodes().stream()
+        List<WorkflowNode> nodes = workflowNodeRepository.findByWorkflowId(workflow.getId());
+        List<WorkflowEdge> edges = workflowEdgeRepository.findByWorkflowId(workflow.getId());
+
+        List<WorkflowResponse.WorkflowNodeResponse> nodeResponses = nodes.stream()
                 .map(n -> WorkflowResponse.WorkflowNodeResponse.builder()
                         .id(n.getId())
                         .type(n.getType().getCode())
@@ -211,7 +218,7 @@ public class WorkflowService {
                         .build())
                 .toList();
 
-        List<WorkflowResponse.WorkflowEdgeResponse> edgeResponses = workflow.getEdges().stream()
+        List<WorkflowResponse.WorkflowEdgeResponse> edgeResponses = edges.stream()
                 .map(e -> WorkflowResponse.WorkflowEdgeResponse.builder()
                         .id(e.getId())
                         .source(e.getSourceNodeId())

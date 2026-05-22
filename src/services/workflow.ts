@@ -2,8 +2,34 @@
 // 壹米AI Agent门户 - 工作流服务
 // =====================================================
 
-import { http } from '@/utils/request'
+import axios from 'axios'
 import type { Workflow, WorkflowNode, WorkflowEdge } from '@/data/workflows'
+
+const workflowRequest = axios.create({
+  baseURL: 'http://localhost:8084',
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+workflowRequest.interceptors.response.use(
+  (response) => {
+    const { data } = response
+    if (data.code === 200 || data.success) {
+      return data.data || data
+    } else {
+      uni.showToast({ title: data.message || '请求失败', icon: 'error' })
+      return Promise.reject(data)
+    }
+  },
+  (error) => {
+    if (!error.response) {
+      uni.showToast({ title: '网络异常', icon: 'none' })
+    }
+    return Promise.reject(error)
+  }
+)
 
 export interface WorkflowCreateInput {
   name: string
@@ -26,71 +52,44 @@ export interface WorkflowExecutionResult {
 }
 
 export const workflowService = {
-  /**
-   * 获取工作流列表
-   */
   async list(params?: {
     page?: number
     size?: number
     status?: string
     keyword?: string
   }): Promise<{ list: Workflow[]; total: number }> {
-    return http.get('/api/workflows', params)
+    return workflowRequest.get('/api/workflows', { params })
   },
 
-  /**
-   * 获取工作流详情
-   */
   async get(id: string): Promise<Workflow> {
-    return http.get(`/api/workflows/${id}`)
+    return workflowRequest.get(`/api/workflows/${id}`)
   },
 
-  /**
-   * 创建工作流
-   */
   async create(data: WorkflowCreateInput): Promise<Workflow> {
-    return http.post('/api/workflows', data)
+    return workflowRequest.post('/api/workflows', data)
   },
 
-  /**
-   * 更新工作流
-   */
   async update(id: string, data: Partial<Workflow>): Promise<Workflow> {
-    return http.put(`/api/workflows/${id}`, data)
+    return workflowRequest.put(`/api/workflows/${id}`, data)
   },
 
-  /**
-   * 删除工作流
-   */
   async delete(id: string): Promise<void> {
-    return http.delete(`/api/workflows/${id}`)
+    return workflowRequest.delete(`/api/workflows/${id}`)
   },
 
-  /**
-   * 启动工作流
-   */
   async activate(id: string): Promise<Workflow> {
-    return http.post(`/api/workflows/${id}/activate`)
+    return workflowRequest.post(`/api/workflows/${id}/activate`)
   },
 
-  /**
-   * 停用工作流
-   */
   async deactivate(id: string): Promise<Workflow> {
-    return http.post(`/api/workflows/${id}/deactivate`)
+    return workflowRequest.post(`/api/workflows/${id}/deactivate`)
   },
 
-  /**
-   * 执行工作流
-   */
   async execute(id: string, input?: Record<string, any>): Promise<WorkflowExecutionResult> {
-    return http.post(`/api/workflows/${id}/execute`, input)
+    return workflowRequest.post(`/api/workflows/${id}/execute`, input)
   },
 
-  /**
-   * 获取工作流执行记录
-   */
   async getExecutions(id: string, params?: { page?: number; size?: number }): Promise<{ list: WorkflowExecutionResult[]; total: number }> {
-    return http.get(`/api/workflows/${id}/executions`, params)
+    return workflowRequest.get(`/api/workflows/${id}/executions`, { params })
   },
 }

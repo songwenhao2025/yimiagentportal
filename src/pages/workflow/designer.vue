@@ -274,6 +274,25 @@ const drawingEdge = ref<any>(null)
 const isPanning = ref(false)
 const panStart = ref({ x: 0, y: 0 })
 
+// Global mouseup handler for drag end
+const handleGlobalMouseUp = () => {
+  isPanning.value = false
+  draggingNode.value = null
+}
+
+const handleGlobalMouseMove = (event: MouseEvent) => {
+  if (draggingNode.value) {
+    const canvasEl = document.querySelector('.canvas') as HTMLElement
+    if (canvasEl) {
+      const rect = canvasEl.getBoundingClientRect()
+      const scaleX = rect.width / canvasEl.offsetWidth
+      const scaleY = rect.height / canvasEl.offsetHeight
+      draggingNode.value.x = (event.clientX - rect.left - dragOffset.value.x * scaleX) / zoom.value + panX.value / zoom.value
+      draggingNode.value.y = (event.clientY - rect.top - dragOffset.value.y * scaleY) / zoom.value + panY.value / zoom.value
+    }
+  }
+}
+
 const getNodeTypeIcon = (type: string) => nodeTemplates[type]?.icon || '📦'
 
 const getNodeDesc = (node: any) => {
@@ -451,8 +470,16 @@ const onCanvasMouseUp = () => {
 
 // Node drag handlers
 const startNodeDrag = (event: MouseEvent, node: any) => {
+  event.stopPropagation()
   draggingNode.value = node
-  dragOffset.value = { x: event.clientX - node.x, y: event.clientY - node.y }
+  const canvasEl = document.querySelector('.canvas') as HTMLElement
+  if (canvasEl) {
+    const rect = canvasEl.getBoundingClientRect()
+    dragOffset.value = { 
+      x: event.clientX - rect.left - node.x * zoom.value + panX.value, 
+      y: event.clientY - rect.top - node.y * zoom.value + panY.value 
+    }
+  }
 }
 
 // Picker change handlers
@@ -571,10 +598,13 @@ onLoad((options: any) => {
 onMounted(() => {
   loadAgents()
   loadSkills()
+  document.addEventListener('mouseup', handleGlobalMouseUp)
+  document.addEventListener('mousemove', handleGlobalMouseMove)
 })
 
 onBeforeUnmount(() => {
-  // Cleanup
+  document.removeEventListener('mouseup', handleGlobalMouseUp)
+  document.removeEventListener('mousemove', handleGlobalMouseMove)
 })
 </script>
 

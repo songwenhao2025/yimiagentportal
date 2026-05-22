@@ -42,4 +42,25 @@ public class AgentCreateRequest {
     private Integer usageCount;
 
     private Double rating;
+
+    private String model;
+
+    private String systemPrompt;
+
+    private String visibility;
+
+    private List<String> skills;
+
+    private List<String> knowledge;
+
+    private List<ExampleItem> examples;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class ExampleItem {
+        private String input;
+        private String output;
+    }
 }

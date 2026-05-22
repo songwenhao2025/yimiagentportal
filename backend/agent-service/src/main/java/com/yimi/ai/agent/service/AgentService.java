@@ -97,6 +97,12 @@ public class AgentService {
                 .dailyCalls(request.getDailyCalls() != null ? request.getDailyCalls() : 0)
                 .usageCount(request.getUsageCount() != null ? request.getUsageCount() : 0)
                 .rating(request.getRating() != null ? BigDecimal.valueOf(request.getRating()) : null)
+                .model(request.getModel())
+                .systemPrompt(request.getSystemPrompt())
+                .visibility(request.getVisibility())
+                .skills(serializeSkills(request.getSkills()))
+                .knowledge(serializeKnowledge(request.getKnowledge()))
+                .examples(serializeExamples(request.getExamples()))
                 .build();
 
         Agent saved = agentRepository.save(agent);
@@ -123,6 +129,32 @@ public class AgentService {
         agentRepository.deleteById(id);
     }
 
+    public AgentResponse activate(String id) {
+        Agent agent = agentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "Agent不存在"));
+        
+        if (agent.getStatus() == AgentStatus.ONLINE) {
+            throw new BusinessException(400, "Agent已经是激活状态");
+        }
+        
+        agent.setStatus(AgentStatus.ONLINE);
+        Agent saved = agentRepository.save(agent);
+        return convertToResponse(saved);
+    }
+
+    public AgentResponse deactivate(String id) {
+        Agent agent = agentRepository.findById(id)
+                .orElseThrow(() -> new BusinessException(404, "Agent不存在"));
+        
+        if (agent.getStatus() == AgentStatus.OFFLINE) {
+            throw new BusinessException(400, "Agent已经是离线状态");
+        }
+        
+        agent.setStatus(AgentStatus.OFFLINE);
+        Agent saved = agentRepository.save(agent);
+        return convertToResponse(saved);
+    }
+
     private final ExecutorService executorService = Executors.newFixedThreadPool(4);
 
     public AgentCallResponse call(String id, AgentCallRequest request) {
@@ -139,14 +171,14 @@ public class AgentService {
         List<String> agentKnowledge = deserializeJsonArray(agent.getKnowledge());
 
         CompletableFuture<String> skillFuture = CompletableFuture.supplyAsync(() -> {
-            if (!agentSkills.isEmpty()) {
+            if (agentSkills != null && !agentSkills.isEmpty()) {
                 return callSkills(agentSkills, request.getInput());
             }
             return "";
         }, executorService);
 
         CompletableFuture<String> knowledgeFuture = CompletableFuture.supplyAsync(() -> {
-            if (!agentKnowledge.isEmpty()) {
+            if (agentKnowledge != null && !agentKnowledge.isEmpty()) {
                 return searchKnowledge(agentKnowledge, request.getInput());
             }
             return "";
@@ -244,30 +276,25 @@ public class AgentService {
         for (String kbId : knowledgeIds) {
             try {
                 ResponseEntity<Map> response = restTemplate.getForEntity(
-                    knowledgeServiceUrl + "/api/knowledge/search?query=" + query + "&limit=5",
+                    knowledgeServiceUrl + "/api/knowledge/" + kbId,
                     Map.class
                 );
 
                 Map<String, Object> responseBody = response.getBody();
                 if (responseBody != null && responseBody.containsKey("data")) {
                     Object data = responseBody.get("data");
-                    if (data instanceof List) {
-                        List<?> docs = (List<?>) data;
-                        for (Object doc : docs) {
-                            if (doc instanceof Map) {
-                                Map<?, ?> docMap = (Map<?, ?>) doc;
-                                String title = docMap.get("title") != null ? docMap.get("title").toString() : "未知标题";
-                                String content = docMap.get("content") != null ? docMap.get("content").toString() : "";
-                                if (content.length() > 500) {
-                                    content = content.substring(0, 500) + "...";
-                                }
-                                results.append("- ").append(title).append(":\n").append(content).append("\n\n");
-                            }
+                    if (data instanceof Map) {
+                        Map<?, ?> docMap = (Map<?, ?>) data;
+                        String title = docMap.get("title") != null ? docMap.get("title").toString() : "未知标题";
+                        String content = docMap.get("content") != null ? docMap.get("content").toString() : "";
+                        if (content.length() > 2000) {
+                            content = content.substring(0, 2000) + "...";
                         }
+                        results.append("- ").append(title).append(":\n").append(content).append("\n\n");
                     }
                 }
             } catch (Exception e) {
-                results.append("- 知识库[").append(kbId).append("]检索失败: ").append(e.getMessage()).append("\n");
+                results.append("- 知识库[").append(kbId).append("]获取失败: ").append(e.getMessage()).append("\n");
             }
         }
 
@@ -278,7 +305,8 @@ public class AgentService {
     private String callLlmWithTools(Agent agent, String userInput, String skillResults, String knowledgeContent) {
         try {
             StringBuilder systemPrompt = new StringBuilder();
-            systemPrompt.append("你是一个专业的AI助手，扮演角色：").append(agent.getName()).append("。\n");
+            String agentName = agent.getName() != null ? agent.getName() : "AI助手";
+            systemPrompt.append("你是一个专业的AI助手，扮演角色：").append(agentName).append("。\n");
             if (agent.getSystemPrompt() != null && !agent.getSystemPrompt().isEmpty()) {
                 systemPrompt.append("系统指令：").append(agent.getSystemPrompt()).append("\n");
             } else {
@@ -322,6 +350,10 @@ public class AgentService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
+            if (llmServiceUrl == null || llmServiceUrl.isEmpty()) {
+                return "LLM服务地址未配置。";
+            }
+            
             ResponseEntity<Map> response = restTemplate.exchange(
                 llmServiceUrl + "/api/llm/chat",
                 HttpMethod.POST,
@@ -330,19 +362,51 @@ public class AgentService {
             );
 
             Map<String, Object> responseBody = response.getBody();
-            if (responseBody != null && responseBody.containsKey("data")) {
-                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
-                if (data != null && data.containsKey("choices")) {
-                    List<Map<String, Object>> choices = (List<Map<String, Object>>) data.get("choices");
-                    if (!choices.isEmpty()) {
-                        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                        return (String) message.get("content");
-                    }
-                }
+            if (responseBody == null) {
+                return "LLM服务返回空响应。";
             }
-            return "抱歉，AI服务暂时无法响应。";
+            
+            if (!responseBody.containsKey("data")) {
+                String message = (String) responseBody.get("message");
+                return "LLM服务错误：" + (message != null ? message : "未知错误");
+            }
+            
+            Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+            if (data == null) {
+                return "LLM服务返回数据为空。";
+            }
+            
+            if (!data.containsKey("choices")) {
+                return "LLM服务返回格式错误：缺少choices字段。";
+            }
+            
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) data.get("choices");
+            if (choices == null || choices.isEmpty()) {
+                return "LLM服务返回的choices为空。";
+            }
+            
+            Map<String, Object> choice = choices.get(0);
+            if (!choice.containsKey("message")) {
+                return "LLM服务返回格式错误：缺少message字段。";
+            }
+            
+            Map<String, Object> message = (Map<String, Object>) choice.get("message");
+            if (message == null || !message.containsKey("content")) {
+                return "LLM服务返回格式错误：缺少content字段。";
+            }
+            
+            String content = (String) message.get("content");
+            if (content == null || content.isEmpty()) {
+                return "LLM服务返回内容为空。";
+            }
+            
+            return content;
         } catch (Exception e) {
-            return "AI服务调用失败：" + e.getMessage();
+            String errorMsg = e.getMessage();
+            if (errorMsg == null) {
+                errorMsg = e.getClass().getSimpleName();
+            }
+            return "AI服务调用失败：" + errorMsg;
         }
     }
 
@@ -361,6 +425,10 @@ public class AgentService {
             headers.setContentType(MediaType.APPLICATION_JSON);
             HttpEntity<Map<String, Object>> entity = new HttpEntity<>(body, headers);
 
+            if (llmServiceUrl == null || llmServiceUrl.isEmpty()) {
+                return "LLM服务地址未配置。";
+            }
+            
             ResponseEntity<Map> response = restTemplate.exchange(
                 llmServiceUrl + "/api/llm/chat",
                 HttpMethod.POST,
@@ -369,19 +437,51 @@ public class AgentService {
             );
 
             Map<String, Object> responseBody = response.getBody();
-            if (responseBody != null && responseBody.containsKey("data")) {
-                Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
-                if (data != null && data.containsKey("choices")) {
-                    List<Map<String, Object>> choices = (List<Map<String, Object>>) data.get("choices");
-                    if (!choices.isEmpty()) {
-                        Map<String, Object> message = (Map<String, Object>) choices.get(0).get("message");
-                        return (String) message.get("content");
-                    }
-                }
+            if (responseBody == null) {
+                return "LLM服务返回空响应。";
             }
-            return "抱歉，AI服务暂时无法响应。";
+            
+            if (!responseBody.containsKey("data")) {
+                String message = (String) responseBody.get("message");
+                return "LLM服务错误：" + (message != null ? message : "未知错误");
+            }
+            
+            Map<String, Object> data = (Map<String, Object>) responseBody.get("data");
+            if (data == null) {
+                return "LLM服务返回数据为空。";
+            }
+            
+            if (!data.containsKey("choices")) {
+                return "LLM服务返回格式错误：缺少choices字段。";
+            }
+            
+            List<Map<String, Object>> choices = (List<Map<String, Object>>) data.get("choices");
+            if (choices == null || choices.isEmpty()) {
+                return "LLM服务返回的choices为空。";
+            }
+            
+            Map<String, Object> choice = choices.get(0);
+            if (!choice.containsKey("message")) {
+                return "LLM服务返回格式错误：缺少message字段。";
+            }
+            
+            Map<String, Object> message = (Map<String, Object>) choice.get("message");
+            if (message == null || !message.containsKey("content")) {
+                return "LLM服务返回格式错误：缺少content字段。";
+            }
+            
+            String content = (String) message.get("content");
+            if (content == null || content.isEmpty()) {
+                return "LLM服务返回内容为空。";
+            }
+            
+            return content;
         } catch (Exception e) {
-            return "AI服务调用失败：" + e.getMessage();
+            String errorMsg = e.getMessage();
+            if (errorMsg == null) {
+                errorMsg = e.getClass().getSimpleName();
+            }
+            return "AI服务调用失败：" + errorMsg;
         }
     }
 
@@ -448,6 +548,30 @@ public class AgentService {
             return objectMapper.readValue(tags, new TypeReference<List<String>>() {});
         } catch (JsonProcessingException e) {
             return Collections.emptyList();
+        }
+    }
+
+    private String serializeSkills(List<String> skills) {
+        try {
+            return objectMapper.writeValueAsString(skills);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
+    }
+
+    private String serializeKnowledge(List<String> knowledge) {
+        try {
+            return objectMapper.writeValueAsString(knowledge);
+        } catch (JsonProcessingException e) {
+            return "[]";
+        }
+    }
+
+    private String serializeExamples(List<AgentCreateRequest.ExampleItem> examples) {
+        try {
+            return objectMapper.writeValueAsString(examples);
+        } catch (JsonProcessingException e) {
+            return "[]";
         }
     }
 }

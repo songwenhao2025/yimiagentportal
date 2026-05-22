@@ -2,13 +2,36 @@
 // 壹米AI Agent门户 - 管理服务（审计日志、成本记录等）
 // =====================================================
 
-import { http } from '@/utils/request'
+import axios from 'axios'
 import type { AuditLog, CostRecord } from '@/data/admin'
 
+const adminRequest = axios.create({
+  baseURL: 'http://localhost:8090',
+  timeout: 60000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+})
+
+adminRequest.interceptors.response.use(
+  (response) => {
+    const { data } = response
+    if (data.code === 200 || data.success) {
+      return data.data || data
+    } else {
+      uni.showToast({ title: data.message || '请求失败', icon: 'error' })
+      return Promise.reject(data)
+    }
+  },
+  (error) => {
+    if (!error.response) {
+      uni.showToast({ title: '网络异常', icon: 'none' })
+    }
+    return Promise.reject(error)
+  }
+)
+
 export const adminService = {
-  /**
-   * 获取审计日志列表
-   */
   async getAuditLogs(params?: {
     page?: number
     size?: number
@@ -18,12 +41,9 @@ export const adminService = {
     startTime?: string
     endTime?: string
   }): Promise<{ list: AuditLog[]; total: number }> {
-    return http.get('/api/admin/logs', params)
+    return adminRequest.get('/api/admin/logs', { params })
   },
 
-  /**
-   * 获取成本记录列表
-   */
   async getCostRecords(params?: {
     page?: number
     size?: number
@@ -32,12 +52,9 @@ export const adminService = {
     startTime?: string
     endTime?: string
   }): Promise<{ list: CostRecord[]; total: number }> {
-    return http.get('/api/admin/costs', params)
+    return adminRequest.get('/api/admin/costs', { params })
   },
 
-  /**
-   * 获取统计数据
-   */
   async getStatistics(params?: {
     startTime?: string
     endTime?: string
@@ -51,41 +68,30 @@ export const adminService = {
     totalCost: number
     activeUsers: number
   }> {
-    return http.get('/api/admin/statistics', params)
+    return adminRequest.get('/api/admin/statistics', { params })
   },
 
-  /**
-   * 获取部门列表
-   */
   async getDepartments(): Promise<{ id: string; name: string }[]> {
-    return http.get('/api/admin/departments')
+    return adminRequest.get('/api/admin/departments')
   },
 
-  /**
-   * 获取角色列表
-   */
   async getRoles(): Promise<{ id: string; name: string; description: string }[]> {
-    return http.get('/api/admin/roles')
+    return adminRequest.get('/api/admin/roles')
   },
 
-  /**
-   * 获取调用趋势数据
-   */
   async getCallTrends(days: number = 7): Promise<number[]> {
-    return http.get('/api/admin/dashboard/trends', { days })
+    return adminRequest.get('/api/admin/dashboard/trends', { params: { days } })
   },
 
-  /**
-   * 获取Agent排行榜
-   */
   async getAgentRanking(topN: number = 5): Promise<{ name: string; department: string; count: number }[]> {
-    return http.get('/api/admin/dashboard/agent-ranking', { topN })
+    return adminRequest.get('/api/admin/dashboard/agent-ranking', { params: { topN } })
   },
 
-  /**
-   * 获取技能排行榜
-   */
   async getSkillRanking(topN: number = 5): Promise<{ name: string; category: string; count: number }[]> {
-    return http.get('/api/admin/dashboard/skill-ranking', { topN })
+    return adminRequest.get('/api/admin/dashboard/skill-ranking', { params: { topN } })
+  },
+
+  async getSatisfactionData(): Promise<{ averageScore: number; ratingDistribution: number[]; totalRatings: number }> {
+    return adminRequest.get('/api/admin/dashboard/satisfaction')
   },
 }

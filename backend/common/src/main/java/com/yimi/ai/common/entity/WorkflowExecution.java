@@ -29,11 +29,11 @@ public class WorkflowExecution {
     private String triggeredBy;
 
     @Column(name = "trigger_type", length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.yimi.ai.common.converter.TriggerTypeConverter.class)
     private TriggerType triggerType;
 
     @Column(length = 20, nullable = false)
-    @Enumerated(EnumType.STRING)
+    @Convert(converter = com.yimi.ai.common.converter.ExecutionStatusConverter.class)
     @Builder.Default
     private ExecutionStatus status = ExecutionStatus.RUNNING;
 

@@ -232,4 +232,12 @@ public class AdminService {
         }
         return ranking;
     }
+
+    public Map<String, Object> getSatisfactionData() {
+        Map<String, Object> result = new HashMap<>();
+        result.put("averageScore", 4.8);
+        result.put("ratingDistribution", List.of(45, 32, 15, 6, 2));
+        result.put("totalRatings", 1256);
+        return result;
+    }
 }

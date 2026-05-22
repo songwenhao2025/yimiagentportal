@@ -3,8 +3,8 @@
     <view class="sidebar">
       <view class="sidebar-header">
         <view class="logo">
-          <text class="logo-icon">🤖</text>
-          <text class="logo-text">壹米AI</text>
+          <image class="logo-icon" src="@/assets/logo-mascot.svg" mode="aspectFit" />
+          <text class="logo-text">滴答灵机</text>
         </view>
       </view>
 
@@ -104,7 +104,8 @@ onMounted(() => {
 }
 
 .logo-icon {
-  font-size: 24px;
+  width: 36px;
+  height: 36px;
 }
 
 .logo-text {

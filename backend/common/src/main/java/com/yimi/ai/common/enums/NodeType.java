@@ -26,8 +26,11 @@ public enum NodeType {
     }
 
     public static NodeType fromCode(String code) {
+        if (code == null) {
+            return AGENT;
+        }
         for (NodeType type : values()) {
-            if (type.code.equals(code)) {
+            if (type.code.equalsIgnoreCase(code)) {
                 return type;
             }
         }

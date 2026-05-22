@@ -117,6 +117,7 @@ public class AuthService {
         }
 
         User user = User.builder()
+                .id(java.util.UUID.randomUUID().toString())
                 .name(request.getName())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))

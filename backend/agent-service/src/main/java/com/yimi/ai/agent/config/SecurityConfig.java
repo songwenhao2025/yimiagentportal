@@ -22,8 +22,15 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(HttpMethod.GET, "/api/agents/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents/*/chat").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents/*/call").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents/*/activate").permitAll()
+                .requestMatchers(HttpMethod.POST, "/api/agents/*/deactivate").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/agent-call-logs/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/agents/{agentId}/ratings/**").permitAll()
+                .requestMatchers(HttpMethod.PUT, "/api/agents/**").permitAll()
+                .requestMatchers(HttpMethod.DELETE, "/api/agents/**").permitAll()
                 .anyRequest().authenticated())
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

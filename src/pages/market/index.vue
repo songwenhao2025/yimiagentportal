@@ -87,6 +87,9 @@
                 <view class="edit-btn" @click.stop="editAgent(agent)">
                   <text>编辑</text>
                 </view>
+                <view class="delete-btn" @click.stop="confirmDelete(agent)">
+                  <text>删除</text>
+                </view>
                 <view class="use-btn" @click.stop="goToChat(agent)">
                   <text>使用</text>
                 </view>
@@ -106,6 +109,22 @@
           <text class="loading-text">加载中...</text>
         </view>
       </view>
+
+      <!-- Delete Confirm Dialog -->
+      <view class="dialog-overlay" v-if="showDeleteConfirm" @click="showDeleteConfirm = false">
+        <view class="dialog-content" @click.stop>
+          <text class="dialog-title">确认删除</text>
+          <text class="dialog-message">确定要删除 "{{ deletingAgent?.name }}" 吗？此操作不可恢复。</text>
+          <view class="dialog-actions">
+            <view class="dialog-btn cancel" @click="showDeleteConfirm = false">
+              <text>取消</text>
+            </view>
+            <view class="dialog-btn confirm" @click="deleteAgent">
+              <text>确认删除</text>
+            </view>
+          </view>
+        </view>
+      </view>
     </view>
   </Layout>
 </template>
@@ -123,6 +142,9 @@ const sortBy = ref('hot')
 const agents = ref<Agent[]>([])
 const loading = ref(true)
 const departments = ref<{ id: string; name: string }[]>([])
+
+const showDeleteConfirm = ref(false)
+const deletingAgent = ref<Agent | null>(null)
 
 const filteredAgents = computed(() => {
   let result = [...agents.value]
@@ -203,6 +225,27 @@ const goToBuilder = () => {
 
 const editAgent = (agent: Agent) => {
   uni.navigateTo({ url: `/pages/builder/index?id=${agent.id}` })
+}
+
+const confirmDelete = (agent: Agent) => {
+  deletingAgent.value = agent
+  showDeleteConfirm.value = true
+}
+
+const deleteAgent = async () => {
+  if (!deletingAgent.value) return
+  
+  try {
+    await agentService.delete(deletingAgent.value.id)
+    uni.showToast({ title: '删除成功', icon: 'success' })
+    agents.value = agents.value.filter(a => a.id !== deletingAgent.value?.id)
+  } catch (error) {
+    console.error('Failed to delete agent:', error)
+    uni.showToast({ title: '删除失败', icon: 'error' })
+  } finally {
+    showDeleteConfirm.value = false
+    deletingAgent.value = null
+  }
 }
 
 onMounted(() => {
@@ -434,29 +477,48 @@ watch([searchQuery, selectedDept, sortBy], () => {
 
 .agent-actions {
   display: flex;
-  gap: 8px;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.edit-btn, .use-btn, .delete-btn {
+  padding: 6px 14px;
+  border-radius: 16px;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 50px;
 }
 
 .edit-btn {
-  padding: 6px 16px;
-  border-radius: 16px;
   background: #f5f5f5;
   color: #666;
-  font-size: 12px;
-  cursor: pointer;
+  border: 1px solid #d9d9d9;
 
   &:hover { background: #e6e6e6; }
 }
 
 .use-btn {
-  padding: 6px 16px;
-  border-radius: 16px;
   background: #1890ff;
   color: #fff;
-  font-size: 12px;
-  cursor: pointer;
+  border: none;
 
   &:hover { background: #40a9ff; }
+}
+
+.delete-btn {
+  background: #fff;
+  color: #ff4d4f;
+  border: 1px solid #ffccc7;
+
+  &:hover { 
+    background: #fff1f0;
+    border-color: #ff9c9c;
+  }
 }
 
 /* States */
@@ -485,4 +547,72 @@ watch([searchQuery, selectedDept, sortBy], () => {
 .loading-text { font-size: 14px; color: #888; margin-top: 12px; }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+
+/* Dialog Styles */
+.dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.dialog-content {
+  background: #fff;
+  border-radius: 12px;
+  padding: 24px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.dialog-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  display: block;
+  margin-bottom: 12px;
+}
+
+.dialog-message {
+  font-size: 14px;
+  color: #666;
+  line-height: 1.6;
+  display: block;
+  margin-bottom: 20px;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog-btn {
+  padding: 8px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+
+  &.cancel {
+    background: #f5f5f5;
+    color: #666;
+    border: 1px solid #d9d9d9;
+
+    &:hover { background: #e6e6e6; }
+  }
+
+  &.confirm {
+    background: #ff4d4f;
+    color: #fff;
+
+    &:hover { background: #ff7875; }
+  }
+}
 </style>

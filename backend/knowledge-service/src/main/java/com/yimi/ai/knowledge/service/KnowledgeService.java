@@ -63,7 +63,7 @@ public class KnowledgeService {
                 .title(request.getTitle())
                 .type(DocumentType.fromCode(request.getType()))
                 .size(request.getSize() != null ? request.getSize() : 0L)
-                .uploadedBy(request.getUploadedBy())
+                .uploadedBy("")
                 .status(DocumentStatus.uploading)
                 .vectorStatus(VectorStatus.pending)
                 .chunkCount(0)
@@ -71,6 +71,7 @@ public class KnowledgeService {
                 .category(request.getCategory())
                 .filePath(request.getFilePath())
                 .fileUrl(request.getFileUrl())
+                .content(request.getContent())
                 .build();
 
         KnowledgeDocument saved = documentRepository.save(document);

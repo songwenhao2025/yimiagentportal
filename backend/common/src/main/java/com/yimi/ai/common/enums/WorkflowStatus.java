@@ -22,8 +22,11 @@ public enum WorkflowStatus {
     }
 
     public static WorkflowStatus fromCode(String code) {
+        if (code == null) {
+            return DRAFT;
+        }
         for (WorkflowStatus status : values()) {
-            if (status.code.equals(code)) {
+            if (status.code.equalsIgnoreCase(code)) {
                 return status;
             }
         }
