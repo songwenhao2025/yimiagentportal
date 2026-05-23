@@ -4,6 +4,19 @@
 
 ## [未发布]
 
+### 安全 (Security)
+
+- **移除硬编码的数据库密码与 JWT 密钥默认值，强制通过环境变量注入。**
+  - 现象：7 个微服务的 `application.yml` 中硬编码了真实数据库密码 `0AHPeevq2U2xWTi*`；JWT 密钥默认值同时硬编码在 yml 和 `JwtUtil.java` 中。仓库公开后两处机密均已泄露。
+  - 改动：
+    - 7 个 `application.yml` 的 `spring.datasource.url/username/password` 统一改为纯环境变量 `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}`（无默认值）。
+    - `auth-service` 与 `llm-service` 的 `jwt.secret-key` 改为 `${JWT_SECRET_KEY}`（无默认值）。
+    - `JwtUtil.java` 移除 `@Value` 注解的默认密钥；所有服务通过 Spring relaxed binding 共享环境变量 `JWT_SECRET_KEY`。
+    - 新增 `.env.example` 文档化所需环境变量。
+    - `start-all.ps1` 同步注入本地开发用 `JWT_SECRET_KEY`。
+  - 效果：缺任何关键环境变量时服务直接启动失败（fail fast），杜绝默认值偷偷上线。
+  - **后续：仍需通知 DBA 修改公司数据库密码、生成生产环境真实 JWT 密钥**（旧值已在 git 历史中泄露）。
+
 ### 修复 (Fixed)
 
 - **登录功能：修复全新部署环境下所有用户无法登录的问题。**

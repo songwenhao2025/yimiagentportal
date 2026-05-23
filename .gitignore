@@ -12,6 +12,12 @@ node_modules
 dist
 *.local
 
+# Local dev helper scripts (machine-specific paths and secrets)
+start-all.ps1
+stop-all.ps1
+# Local env file (may contain real secrets, must never be committed)
+.env
+
 # Editor directories and files
 .idea
 *.suo

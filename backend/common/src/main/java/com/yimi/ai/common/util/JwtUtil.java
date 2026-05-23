@@ -13,7 +13,7 @@ import java.util.Map;
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret-key:yimi-ai-portal-secret-key-must-be-at-least-256-bits-long-for-security}")
+    @Value("${jwt.secret-key}")
     private String secretKey;
 
     @Value("${jwt.expiration:86400000}")
