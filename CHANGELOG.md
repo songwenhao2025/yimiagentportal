@@ -1,0 +1,56 @@
+# 更新日志 (CHANGELOG)
+
+本文件记录壹米 AI Agent 门户项目的重要改动。格式参考 [Keep a Changelog](https://keepachangelog.com/zh-CN/)。
+
+## [未发布]
+
+### 安全 (Security)
+
+- **移除硬编码的数据库密码与 JWT 密钥默认值，强制通过环境变量注入。**
+  - 现象：7 个微服务的 `application.yml` 中硬编码了真实数据库密码 `0AHPeevq2U2xWTi*`；JWT 密钥默认值同时硬编码在 yml 和 `JwtUtil.java` 中。仓库公开后两处机密均已泄露。
+  - 改动：
+    - 7 个 `application.yml` 的 `spring.datasource.url/username/password` 统一改为纯环境变量 `${DB_URL}` / `${DB_USERNAME}` / `${DB_PASSWORD}`（无默认值）。
+    - `auth-service` 与 `llm-service` 的 `jwt.secret-key` 改为 `${JWT_SECRET_KEY}`（无默认值）。
+    - `JwtUtil.java` 移除 `@Value` 注解的默认密钥；所有服务通过 Spring relaxed binding 共享环境变量 `JWT_SECRET_KEY`。
+    - 新增 `.env.example` 文档化所需环境变量。
+    - `start-all.ps1` 同步注入本地开发用 `JWT_SECRET_KEY`。
+  - 效果：缺任何关键环境变量时服务直接启动失败（fail fast），杜绝默认值偷偷上线。
+  - **后续：仍需通知 DBA 修改公司数据库密码、生成生产环境真实 JWT 密钥**（旧值已在 git 历史中泄露）。
+
+### 修复 (Fixed)
+
+- **登录功能：修复全新部署环境下所有用户无法登录的问题。**
+  - 现象：使用默认账号（如 `zhangsan@company.com` / `123456`）登录，接口返回 `401 邮箱或密码错误`。
+  - 根因：`database/schema.sql` 预置的 5 个用户 INSERT 语句缺少 `password` 列，导致用户密码为 `NULL`；而 `auth-service` 的 `DataInitializer` 仅在用户表为空时才会创建带密码的用户。二者冲突，使得任何全新部署的环境都没有可用的登录凭证。
+  - 修复：在 `schema.sql` 的用户 INSERT 中补全 `password` 字段（BCrypt 加密的默认密码 `123456`），并在 `ON DUPLICATE KEY UPDATE` 中同步修复 `password`，确保对已存在脏数据的环境重复执行脚本也能修正。
+
+---
+
+## 开发计划 (Roadmap)
+
+### 目标
+
+**6 月底完成 1.0 版上线** —— 依据 2026-05-22 会议《平台开发与上线规划》。
+
+### 任务清单与代码现状
+
+| # | 任务 | 代码现状 | 还需开发 | 优先级 |
+|---|------|---------|----------|--------|
+| 1 | **安全改造** | ⚠️ 部分 | 移除 `application.yml` 中硬编码的数据库密码/JWT 密钥默认值，改为纯环境变量注入；更新生产 JWT 密钥 | 🔴 必做 |
+| 2 | **前后端分离 + Nginx** | ❌ 未开发 | 前端打包成静态资源；编写 Nginx 配置（托管静态资源 + 反向代理 `/api/*` 到 7 个微服务） | 🔴 必做 |
+| 3 | **组织结构与权限体系** | ⚠️ 基础 RBAC | 对接公司组织结构、部门级数据隔离（按会议精神，尽量复用已有 `users.department` 和 `role`，不新建表） | 🟡 看分工 |
+| 4 | **OA 系统对接** | ❌ 未开发 | 组织树同步、人员信息同步、单点登录 (SSO) | 🟡 看分工 |
+| 5 | **日志监控** | ⚠️ 业务审计已有 | 架构部署级日志监控（Prometheus / ELK 等） | 🟢 配合 |
+| 6 | **上下文信息存储** ⭐ | ❌ 未开发 | 自建数据库或 RAG 存储"定责的上下文信息"，支持跨会话上下文（**会议明确的核心任务**） | 🔴 必做 |
+| 7 | **知识库与公司 RAG 打通** ⭐ | ⚠️ 本地版完成 | 本地文档管理与上传已完成；待开发：与公司 RAG 系统打通、语义检索（**会议明确的核心任务**） | 🔴 必做 |
+| 8 | **Supervisor 路由功能** | ❌ 未开发 | 多 Agent 路由编排（按会议安排，此项由他人负责） | ⚪ 他人 |
+
+### 工作流约定
+
+- **每个任务独立分支**：`feat/xxx` 或 `fix/xxx`，从最新 `main` 切出
+- **提交后开 Pull Request**：由仓库所有者审核合并
+- **关键改动记录到 CHANGELOG.md**
+
+### 相关文档
+
+- 会议纪要：《平台开发与上线规划 2026-05-22》（飞书文档）
