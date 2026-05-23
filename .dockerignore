@@ -1,0 +1,14 @@
+node_modules
+dist
+logs
+.git
+.idea
+.vscode
+backend/**/target
+*.log
+.env
+.env.local
+.env.*.local
+start-all.ps1
+stop-all.ps1
+SESSION_HANDOFF.md
