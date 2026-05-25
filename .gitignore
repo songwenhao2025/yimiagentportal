@@ -19,3 +19,51 @@ dist
 *.njsproj
 *.sln
 *.sw?
+.vscode/
+.cursor/
+.codegraph/
+.windsurf/
+
+# ===== Java / Maven =====
+target/
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+.mvn/
+!.mvn/wrapper/maven-wrapper.jar
+dependency-reduced-pom.xml
+
+# ===== Spring Boot =====
+**/application-local.yml
+**/application-local.yaml
+**/application-local.properties
+
+# ===== 前端补充 =====
+.next/
+out/
+build/
+coverage/
+.vite/
+.turbo/
+*.tsbuildinfo
+
+# ===== 环境变量与密钥 =====
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# ===== 本地启动/调试脚本（仅本机） =====
+start-all.ps1
+stop-all.ps1
+
+# ===== 操作系统 =====
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
