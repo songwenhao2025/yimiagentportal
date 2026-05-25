@@ -61,7 +61,7 @@
 ### 基础设施
 | 组件 | 说明 |
 |------|------|
-| MySQL | `10.206.20.129:3306`，数据库 `yimi_ai_portal` |
+| MySQL | `${DB_HOST}:3306`，数据库 `yimi_ai_portal`（通过环境变量配置） |
 | Anthropic API | 默认指向本地代理 `localhost:15721`（可配置为真实 API） |
 
 ---

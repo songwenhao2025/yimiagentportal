@@ -5,9 +5,9 @@ spring:
   application:
     name: agent-service
   datasource:
-    url: jdbc:mysql://10.206.20.129:3306/yimi_ai_portal?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
-    username: root
-    password: 0AHPeevq2U2xWTi*
+    url: ${DB_URL:jdbc:mysql://localhost:3306/yimi_ai_portal?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:}
     driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:

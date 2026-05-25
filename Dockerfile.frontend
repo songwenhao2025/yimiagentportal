@@ -1,0 +1,48 @@
+# =============================================================================
+# 壹米 AI Agent 门户 — 前端镜像（Node 构建 → Nginx 运行）
+# =============================================================================
+#
+# 用法：
+#   docker build -f Dockerfile.frontend -t yimi-portal-frontend:latest .
+#   docker run -d -p 80:80 --add-host=host.docker.internal:host-gateway \
+#       yimi-portal-frontend:latest
+#
+# 说明：
+#   - 仅打包前端 H5 产物 + Nginx 反代配置
+#   - 后端 7 个微服务由独立容器或宿主进程提供，本镜像不内含
+#   - 默认 upstream 指向 127.0.0.1，容器场景需配合 host-gateway 或自定义 network
+# =============================================================================
+
+# -------- Stage 1: 构建前端 H5 产物 --------
+FROM node:20-alpine AS builder
+
+WORKDIR /app
+
+# 仅拷贝依赖清单，最大化利用 Docker 层缓存
+COPY package.json package-lock.json ./
+RUN npm ci --no-audit --no-fund
+
+# 拷贝源码并构建
+COPY . .
+RUN npm run build:h5
+
+# -------- Stage 2: Nginx 运行时 --------
+FROM nginx:1.27-alpine
+
+# 移除默认站点
+RUN rm -f /etc/nginx/conf.d/default.conf
+
+# 注入项目 Nginx 配置
+COPY nginx/yimi-portal.conf /etc/nginx/conf.d/yimi-portal.conf
+COPY nginx/yimi-proxy.conf  /etc/nginx/snippets/yimi-proxy.conf
+
+# 拷贝构建产物到 yimi-portal.conf 中声明的 root 目录
+COPY --from=builder /app/dist/build/h5/ /var/www/yimi-portal/h5/
+
+# 健康检查（命中 yimi-portal.conf 里的 /healthz）
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO- http://127.0.0.1/healthz || exit 1
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

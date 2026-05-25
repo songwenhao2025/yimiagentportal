@@ -10,15 +10,15 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/agents': {
-        target: 'http://localhost:8091',
+        target: 'http://localhost:8082',
         changeOrigin: true,
       },
       '/api/agent-call-logs': {
-        target: 'http://localhost:8091',
+        target: 'http://localhost:8082',
         changeOrigin: true,
       },
       '/api/skills': {
-        target: 'http://localhost:8092',
+        target: 'http://localhost:8083',
         changeOrigin: true,
       },
       '/api/workflows': {
@@ -30,11 +30,11 @@ export default defineConfig({
         changeOrigin: true,
       },
       '/api/knowledge': {
-        target: 'http://localhost:8093',
+        target: 'http://localhost:8085',
         changeOrigin: true,
       },
       '/api/admin': {
-        target: 'http://localhost:8090',
+        target: 'http://localhost:8086',
         changeOrigin: true,
       },
       '/api/users': {
