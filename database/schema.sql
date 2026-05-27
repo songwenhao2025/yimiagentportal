@@ -312,14 +312,15 @@ CREATE TABLE IF NOT EXISTS `workflow_executions` (
 -- 初始化数据
 -- =====================================================
 
--- 插入默认管理员用户
-INSERT INTO `users` (`id`, `name`, `department`, `role`, `email`, `phone`, `status`) VALUES
-('u1', '张三', 'IT部', 'admin', 'zhangsan@company.com', '13800138001', 'active'),
-('u2', '李四', '运营部', 'developer', 'lisi@company.com', '13800138002', 'active'),
-('u3', '王五', '质控部', 'developer', 'wangwu@company.com', '13800138003', 'active'),
-('u4', '赵六', '客服部', 'user', 'zhaoliu@company.com', '13800138004', 'active'),
-('u5', '钱七', '财务部', 'user', 'qianqi@company.com', '13800138005', 'inactive')
-ON DUPLICATE KEY UPDATE `updated_at` = CURRENT_TIMESTAMP;
+-- 插入默认用户
+-- 注: password 为 BCrypt 加密后的默认密码 123456
+INSERT INTO `users` (`id`, `name`, `department`, `role`, `email`, `phone`, `password`, `status`) VALUES
+('u1', '张三', 'IT部', 'admin', 'zhangsan@company.com', '13800138001', '$2a$10$HQ7Tpf9ZUO1Qdv4My0DTP.9exJwS1c.IRHZu6n5rOn9J7IGf5Az7G', 'active'),
+('u2', '李四', '运营部', 'developer', 'lisi@company.com', '13800138002', '$2a$10$HQ7Tpf9ZUO1Qdv4My0DTP.9exJwS1c.IRHZu6n5rOn9J7IGf5Az7G', 'active'),
+('u3', '王五', '质控部', 'developer', 'wangwu@company.com', '13800138003', '$2a$10$HQ7Tpf9ZUO1Qdv4My0DTP.9exJwS1c.IRHZu6n5rOn9J7IGf5Az7G', 'active'),
+('u4', '赵六', '客服部', 'user', 'zhaoliu@company.com', '13800138004', '$2a$10$HQ7Tpf9ZUO1Qdv4My0DTP.9exJwS1c.IRHZu6n5rOn9J7IGf5Az7G', 'active'),
+('u5', '钱七', '财务部', 'user', 'qianqi@company.com', '13800138005', '$2a$10$HQ7Tpf9ZUO1Qdv4My0DTP.9exJwS1c.IRHZu6n5rOn9J7IGf5Az7G', 'inactive')
+ON DUPLICATE KEY UPDATE `password` = VALUES(`password`), `updated_at` = CURRENT_TIMESTAMP;
 
 -- =====================================================
 -- 数据库初始化完成
